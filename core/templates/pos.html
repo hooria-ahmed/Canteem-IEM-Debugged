@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>POS Terminal — CanteenMS</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300..500;1,300..500&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Libraries -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/auto-animate/0.8.2/auto-animate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.js"></script>
+    <link href="https://unpkg.com/nprogress@0.2.0/nprogress.css" rel="stylesheet">
+    <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
+
+    <style>
+        :root {
+            --primary:    #10B981;
+            --primary-h:  #059669;
+            --bg:         #F8FAFC;
+            --surface:    #FFFFFF;
+            --border:     #E2E8F0;
+            --text-1:     #0F172A;
+            --text-2:     #334155;
+            --text-3:     #64748B;
+            --text-4:     #94A3B8;
+            --radius:     16px;
+            --font:       'DM Sans', sans-serif;
+            --mono:       'DM Mono', monospace;
+            --shadow:     0 4px 12px rgba(0,0,0,0.03);
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font); background: var(--bg); color: var(--text-1);
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* HEADER */
+        .hdr {
+            height: 64px; background: var(--surface); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; z-index: 100;
+        }
+        .hdr-brand { display: flex; align-items: center; gap: 12px; font-weight: 850; font-size: 18px; letter-spacing: -0.02em; }
+        .hdr-logo { width: 32px; height: 32px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; }
+        
+        .nav-links { display: flex; align-items: center; gap: 8px; }
+        .nav-link { padding: 8px 16px; border-radius: 12px; color: var(--text-3); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all var(--transition); }
+        .nav-link:hover { background: var(--bg); color: var(--text-1); }
+        .nav-link.active { background: var(--primary-soft); color: var(--primary); }
+
+        /* MAIN LAYOUT */
+        .pos-container { flex: 1; display: grid; grid-template-columns: 1fr 400px; gap: 0; overflow: hidden; }
+        
+        @media (max-width: 1400px) {
+            .pos-container { grid-template-columns: 1fr 350px; }
+        }
+        @media (max-width: 1024px) {
+            .pos-container { grid-template-columns: 1fr 300px; }
+        }
+        @media (max-width: 768px) {
+            .pos-container { grid-template-columns: 1fr; }
+            .cart-panel { display: none; } /* Hide sidebar on mobile unless toggled */
+        }
+        
+        /* LEFT PANEL: MENU */
+        .menu-panel { display: flex; flex-direction: column; padding: 24px; overflow: hidden; border-right: 1px solid var(--border); }
+        .cat-bar { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 24px; 
+            overflow-x: auto; 
+            overflow-y: hidden;
+            padding: 8px 4px 16px; 
+            flex-shrink: 0;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .cat-bar::-webkit-scrollbar { display: none; }
+        
+        .cat-btn { 
+            padding: 10px 22px; 
+            border-radius: 14px; 
+            border: 1.5px solid var(--border); 
+            background: var(--surface); 
+            font-weight: 700; 
+            font-size: 13.5px; 
+            color: var(--text-2); 
+            transition: all var(--transition); 
+            white-space: nowrap; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: var(--shadow);
+        }
+        .cat-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .cat-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.25); }
+
+        .dish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; overflow-y: auto; padding-bottom: 24px; }
+
+        /* Dish Card */
+        .dish-card {
+            background: var(--surface); 
+            border: 1.5px solid var(--border); 
+            border-radius: 20px;
+            padding: 20px 18px 18px; 
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            cursor: pointer; 
+            position: relative; 
+            min-height: 120px; 
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+        }
+        .dish-card:hover { 
+            transform: translateY(-4px) scale(1.02); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08); 
+            border-color: var(--primary); 
+            background: #fafafa;
+        }
+        .dish-card:hover .card-icon { transform: scale(1.15) rotate(5deg); }
+
+        /* Selected state */
+        .dish-card.selected {
+            border-color: var(--primary); background: #F0FDF4;
+            transform: scale(0.96); box-shadow: 0 0 0 4px rgba(16,185,129,0.18);
+        }
+        .dish-card.selected .dish-name { color: var(--primary); }
+
+        /* Disabled state */
+        .dish-card.disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+            background: #F9FAFB;
+            border-color: var(--border);
+        }
+        .dish-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--border);
+            background: #F9FAFB;
+        }
+        .dish-card.disabled .card-icon {
+            transform: none !important;
+            background: #E5E7EB;
+            color: #9CA3AF;
+        }
+
+        /* Ripple */
+        .dish-card .ripple {
+            position: absolute; border-radius: 50%; pointer-events: none;
+            background: rgba(16,185,129,0.22); transform: scale(0);
+            animation: ripple-burst 0.55s ease-out forwards;
+        }
+        @keyframes ripple-burst { to { transform: scale(4); opacity: 0; } }
+
+        /* Icon pill */
+        .card-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+            color: #065F46; font-weight: 900; font-size: 15px;
+            margin-bottom: 10px; transition: transform 0.2s ease;
+        }
+        .dish-name  { 
+            font-weight: 800; 
+            font-size: 14px; 
+            margin-bottom: 6px; 
+            color: var(--text-1); 
+            line-height: 1.3; 
+            display: -webkit-box; 
+            -webkit-line-clamp: 2; 
+            line-clamp: 2; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden; 
+            height: 36px;
+        }
+        .dish-price { 
+            font-weight: 900; 
+            color: #1e293b; 
+            font-size: 17px; 
+            letter-spacing: -0.03em; 
+            margin-bottom: 8px; 
+            display: block;
+        }
+        .dish-stock { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Added pulse */
+        @keyframes added-pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+            70%  { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+            100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        }
+
+        /* RIGHT PANEL: CART */
+        .cart-panel { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; box-shadow: -4px 0 24px rgba(0,0,0,0.02); }
+        .cart-header { padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .cart-header h2 { font-size: 18px; font-weight: 850; letter-spacing: -0.02em; }
+        
+        .cart-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .cart-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border-radius: 16px; border: 1px solid transparent; transition: all var(--transition); }
+        .cart-item:hover { border-color: var(--border); background: #fff; transform: scale(1.02); }
+        .cart-item-info { flex: 1; }
+        .cart-item-name { font-weight: 750; font-size: 13.5px; }
+        .cart-item-price { font-size: 12px; color: var(--text-3); font-weight: 600; }
+        
+        .qty-ctrl { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+        .qty-btn { width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--surface-2); color: var(--text-1); font-weight: 800; transition: all var(--transition); }
+        .qty-btn:hover { background: var(--text-1); color: #fff; }
+        .qty-val { font-weight: 800; font-size: 13px; width: 20px; text-align: center; }
+
+        .cart-footer { padding: 24px; border-top: 1px solid var(--border); background: var(--surface); }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-3); }
+        .summary-total { display: flex; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1.5px dashed var(--border); font-size: 22px; font-weight: 850; color: var(--text-1); }
+        
+        .checkout-btn { width: 100%; padding: 18px; border-radius: 16px; background: var(--primary); color: #fff; border: none; font-weight: 900; font-size: 16px; margin-top: 24px; transition: all var(--transition); display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 8px 24px rgba(16,185,129,0.25); text-transform: uppercase; letter-spacing: 0.05em; }
+        .checkout-btn:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(16,185,129,0.35); background: var(--primary-h); }
+        .checkout-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; background: var(--text-4); }
+
+        /* Search Bar */
+        .search-wrap { position: relative; margin-bottom: 24px; }
+        .search-input { width: 100%; padding: 14px 20px 14px 48px; border-radius: 16px; border: 1.5px solid var(--border); background: var(--surface); outline: none; font-weight: 600; font-size: 14px; transition: all var(--transition); }
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); }
+        .search-icon { position: absolute; left: 18px; top: 16px; color: var(--text-4); }
+
+        #nprogress .bar { background: var(--primary) !important; height: 3px !important; }
+    </style>
+</head>
+<body>
+
+<header class="hdr">
+    <div class="hdr-brand">
+        <div class="hdr-logo"><i data-lucide="utensils"></i></div>
+        <span>CanteenMS POS</span>
+    </div>
+
+    <div class="nav-links">
+        <a href="/manager/" class="nav-link"><i data-lucide="layout-grid"></i> Dashboard</a>
+        <a href="/pos/" class="nav-link active"><i data-lucide="monitor"></i> Terminal</a>
+        <a href="/order-history/" class="nav-link"><i data-lucide="history"></i> History</a>
+        <a href="/kitchen/" class="nav-link" target="_blank"><i data-lucide="chef-hat"></i> Kitchen</a>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px">
+        <div style="font-weight:700; font-size:12px; color:var(--text-3); background:var(--bg); padding:6px 14px; border-radius:10px">
+            <i class="bi bi-person-check"></i> {{ request.session.user_name|default:"Cashier" }}
+        </div>
+        <a href="/logout/" style="color:var(--text-4); font-size:18px"><i data-lucide="log-out"></i></a>
+    </div>
+</header>
+
+<div class="pos-container">
+    <section class="menu-panel">
+        <div class="search-wrap">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search by dish name or category..." oninput="filterMenu(this.value)">
+        </div>
+
+        <div class="cat-bar">
+            <button class="cat-btn active" onclick="filterCat('all', this)"><i data-lucide="grid"></i> All Items</button>
+            {% for cat in categories %}
+            <button class="cat-btn" onclick="filterCat('{{ cat.name|slugify }}', this)">{{ cat.name }}</button>
+            {% endfor %}
+        </div>
+
+        <div class="dish-grid" id="dishGrid" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+            {% for dish in dishes %}
+            <div class="dish-card{% if dish.stock <= 0 %} disabled{% endif %}"
+                 data-cat="{{ dish.category.name|slugify }}"
+                 data-name="{{ dish.name|lower }}"
+                 data-dish-id="{{ dish.id }}"
+                 {% if dish.stock > 0 %}
+                 hx-post="{% url 'add_to_cart_ajax' dish.id %}"
+                 hx-target="#cartContainer"
+                 hx-swap="innerHTML"
+                 hx-on:htmx:before-request="onCardSelect(this, event)"
+                 hx-on:htmx:after-swap="onCardDeselect(this)"
+                 {% endif %}>
+
+                <!-- ripple placeholder -->
+                <div class="card-icon">{{ dish.name|slice:":1" }}</div>
+
+                <div class="dish-name">{{ dish.name }}</div>
+                <div class="dish-price">Rs. {{ dish.selling_price|floatformat:0 }}</div>
+                <div class="dish-stock">
+                    {% if dish.stock > 10 %}
+                    <span style="color:var(--primary)">● In Stock</span>
+                    {% elif dish.stock > 0 %}
+                    <span style="color:#F59E0B">● Low ({{ dish.stock|floatformat:0 }} left)</span>
+                    {% else %}
+                    <span style="color:var(--danger)">● Out of Stock</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <aside class="cart-panel">
+        <div class="cart-header">
+            <h2>Current Order</h2>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <button 
+                    hx-get="{% url 'pos' %}" 
+                    hx-target="body"
+                    style="background:none; border:none; color:var(--text-4); cursor:pointer;"
+                    title="Refresh POS"
+                >
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px"></i>
+                </button>
+                <button 
+                    hx-post="{% url 'clear_cart_ajax' %}"
+                    hx-target="#cartContainer"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-confirm="Are you sure you want to clear the entire order?"
+                    style="background:none; border:none; color:var(--danger); font-weight:700; font-size:12px; cursor:pointer"
+                >
+                    CLEAR ALL
+                </button>
+            </div>
+        </div>
+
+        <div class="cart-list" id="cartContainer" data-auto-animate>
+            {% include "cart_partial.html" with hide_footer=True %}
+        </div>
+
+        <div class="cart-footer" id="cartFooter">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>Rs. {{ grand_total|default:0|floatformat:0 }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Tax (0%)</span>
+                <span>Rs. 0</span>
+            </div>
+            <div class="summary-total">
+                <span>Total</span>
+                <span style="color:var(--primary); font-size: 24px; font-weight: 800;">Rs. {{ grand_total|default:0|floatformat:0 }}</span>
+            </div>
+
+            <button class="checkout-btn" onclick="openCheckout()" {% if not cart_items or grand_total <= 0 %}disabled{% endif %}>
+                <i data-lucide="credit-card"></i> PROCEED TO CHECKOUT
+            </button>
+        </div>
+    </aside>
+</div>
+
+<script>
+    lucide.createIcons();
+    const autoAnimate = window.autoAnimate;
+    autoAnimate(document.getElementById('cartContainer'));
+
+    /* ── Select effect: snappy toggle ── */
+    function onCardSelect(card) {
+        card.classList.add('selected');
+    }
+
+    /* ── Deselect effect: snappy remove ── */
+    function onCardDeselect(card) {
+        if (!card) return;
+        card.classList.remove('selected');
+        // Pulse glow confirms item was added
+        card.style.animation = 'none';
+        card.offsetHeight; // force reflow
+        card.style.animation = 'added-pulse 0.6s ease-out';
+        card.addEventListener('animationend', function() { card.style.animation = ''; }, { once: true });
+        lucide.createIcons();
+    }
+
+    // Failsafe: clear selected states on beforeRequest and responseError
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        NProgress.start();
+        if (evt.detail.elt && evt.detail.elt.classList.contains('dish-card')) {
+             document.querySelectorAll('.dish-card.selected').forEach(c => c.classList.remove('selected'));
+        }
+    });
+
+    document.body.addEventListener('htmx:responseError', function() {
+        document.querySelectorAll('.dish-card.selected').forEach(c => c.classList.remove('selected'));
+        NProgress.done();
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.elt && evt.detail.elt.classList.contains('dish-card')) {
+            onCardDeselect(evt.detail.elt);
+        }
+        NProgress.done();
+    });
+
+    let filterTimeout;
+    function filterMenu(query) {
+        clearTimeout(filterTimeout);
+        var q = (query || "").toLowerCase().trim();
+        filterTimeout = setTimeout(function() {
+            var cards = document.querySelectorAll('.dish-card');
+            cards.forEach(function(card) {
+                var name = (card.dataset.name || "").toLowerCase();
+                var cat = (card.dataset.cat || "").toLowerCase();
+                // Match name OR category
+                if (name.includes(q) || cat.includes(q)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            // Reset category filter highlights
+            if (q !== "") {
+                document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector('.cat-btn[onclick*="all"]').classList.add('active');
+            }
+        }, 50);
+    }
+
+    function filterCat(cat, btn) {
+        document.querySelectorAll('.cat-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.dish-card').forEach(function(card) {
+            card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+        });
+    }
+
+    function openCheckout() {
+        window.location.href = "{% url 'checkout_screen' %}";
+    }
+
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+
+    document.body.addEventListener('showStockError', (evt) => {
+        alert(evt.detail.value);
+    });
+</script>
+</body>
+</html>

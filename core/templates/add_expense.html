@@ -1,0 +1,182 @@
+{% extends "base_manager.html" %}
+{% block title %}Record Expense{% endblock %}
+{% block nav_finance %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-wrap { display:grid; grid-template-columns:1fr 400px; gap:24px; align-items:start; }
+.form-card { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.form-card-header {
+  padding:24px 28px;
+  background:linear-gradient(135deg, #e55a00 0%, var(--accent) 100%);
+  display:flex; align-items:center; gap:16px;
+}
+.form-card-header .hdr-icon {
+  width:52px; height:52px; background:rgba(255,255,255,.18);
+  border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px;
+}
+.form-card-header h2 { color:#fff; font-size:19px; font-weight:800; margin-bottom:3px; }
+.form-card-header p  { color:rgba(255,255,255,.8); font-size:12px; margin:0; }
+.form-card-body { padding:28px; }
+.hint { font-size:11px; color:var(--text-4); margin-top:5px; display:flex; align-items:center; gap:4px; }
+
+/* Tips sidebar card */
+.tips-card { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; }
+.tips-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--text-4); margin-bottom:16px; display:flex; align-items:center; gap:7px; }
+.tip-item { display:flex; gap:12px; margin-bottom:16px; align-items:flex-start; }
+.tip-icon { width:34px; height:34px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.tip-label { font-size:12px; font-weight:600; color:var(--text-2); margin-bottom:2px; }
+.tip-desc  { font-size:11px; color:var(--text-4); line-height:1.5; }
+
+/* Category preview pills */
+.cat-pills { display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+.cat-pill { padding:5px 12px; border-radius:20px; background:var(--surface); border:1px solid var(--border); font-size:11px; font-weight:600; color:var(--text-3); cursor:pointer; transition:all .15s; }
+.cat-pill:hover { background:var(--accent-glow); border-color:var(--accent); color:var(--accent); }
+.cat-pill.selected { background:var(--accent-glow); border-color:var(--accent); color:var(--accent); }
+
+@media(max-width:900px){ .page-wrap{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for msg in messages %}
+<div class="alert-pro {{ msg.tags }} mb-4" data-aos="fade-down">
+  <i class="bi bi-check-circle-fill"></i> {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="page-header" data-aos="fade-down">
+  <h1><i class="bi bi-wallet2" style="color:var(--accent)"></i> Record Expense</h1>
+  <p>Log an operational expense for finance tracking and P&L reporting</p>
+</div>
+
+<div class="page-wrap">
+  <!-- FORM CARD -->
+  <div class="form-card" data-aos="fade-up">
+    <div class="form-card-header" style="background: linear-gradient(135deg, var(--primary) 0%, #059669 100%);">
+      <div class="hdr-icon" style="background: rgba(255,255,255,0.15);">💸</div>
+      <div>
+        <h2 style="color: white;">New Expense Entry</h2>
+        <p style="color: rgba(255,255,255,0.8);">Fill in the details to record this operational expense</p>
+      </div>
+    </div>
+    <div class="form-card-body">
+      <form method="POST" class="form-pro" id="expenseForm">
+        {% csrf_token %}
+
+        <div class="field-pro" style="margin-bottom: 20px;">
+          <label style="font-weight: 800; color: var(--text-2); font-size: 13px; margin-bottom: 8px; display: block;"><i class="bi bi-pencil-fill"></i> Expense Title</label>
+          <input type="text" name="title" id="expTitle" placeholder="e.g. Gas bill, Vegetable supply, Staff wages..." required autocomplete="off" style="width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border); font-family: inherit; font-weight: 600; font-size: 14px; outline: none;">
+          <div class="hint"><i class="bi bi-info-circle"></i> A short descriptive name for this expense</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom: 20px;">
+          <div class="field-pro">
+            <label style="font-weight: 800; color: var(--text-2); font-size: 13px; margin-bottom: 8px; display: block;"><i class="bi bi-currency-rupee"></i> Amount (Rs.)</label>
+            <input type="number" name="amount" id="expAmount" step="0.01" min="0.01" placeholder="0.00" required style="width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border); font-family: inherit; font-weight: 600; font-size: 14px; outline: none;">
+          </div>
+          <div class="field-pro">
+            <label style="font-weight: 800; color: var(--text-2); font-size: 13px; margin-bottom: 8px; display: block;"><i class="bi bi-calendar3"></i> Date</label>
+            <input type="text" name="expense_date" id="expDate" value="{% now 'Y-m-d' %}" class="flatpickr-date" required style="width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border); font-family: inherit; font-weight: 600; font-size: 14px; outline: none;">
+          </div>
+        </div>
+
+        <div class="field-pro" style="margin-bottom: 24px;">
+          <label style="font-weight: 800; color: var(--text-2); font-size: 13px; margin-bottom: 8px; display: block;"><i class="bi bi-tag-fill"></i> Category</label>
+          <select name="category" id="catSelect" class="select2" required style="width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--border); font-family: inherit; font-weight: 600; font-size: 14px; outline: none;">
+            <option value="">— Select a category —</option>
+            {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="hint" style="margin-top: 12px;"><i class="bi bi-lightbulb"></i> Quick select:</div>
+          <div class="cat-pills" id="catPills">
+            {% for c in categories %}
+            <div class="cat-pill" onclick="selectCat('{{ c.id }}','{{ c.name }}',this)">{{ c.name }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:12px;padding-top:24px;border-top:1px solid var(--border)">
+          <a href="/finance/" class="btn-outline-pro" style="flex:1;justify-content:center; border-radius: 14px; padding: 16px; font-weight: 800;">
+            <i class="bi bi-arrow-left"></i> Cancel
+          </a>
+          <button type="submit" class="btn-primary-pro" style="flex:2;justify-content:center; background: var(--primary); color: white; border-radius: 14px; font-weight: 800; border: none; padding: 16px; font-size: 15px; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);" id="submitBtn">
+            <i class="bi bi-save-fill"></i> Save Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TIPS SIDEBAR -->
+  <div data-aos="fade-left" data-aos-delay="100">
+    <div class="tips-card" style="margin-bottom:16px">
+      <div class="tips-title"><i class="bi bi-lightbulb-fill" style="color:var(--warning)"></i> Tips</div>
+      <div class="tip-item">
+        <div class="tip-icon" style="background:rgba(29,158,117,.12)">🏷️</div>
+        <div>
+          <div class="tip-label">Use Clear Titles</div>
+          <div class="tip-desc">Name expenses clearly like "Gas - May 2026" for easy P&L tracking.</div>
+        </div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon" style="background:rgba(249,115,22,.1)">📅</div>
+        <div>
+          <div class="tip-label">Correct Date</div>
+          <div class="tip-desc">Set the actual expense date — not today's date — for accurate daily reports.</div>
+        </div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-icon" style="background:rgba(59,130,246,.1)">📂</div>
+        <div>
+          <div class="tip-label">Pick the Right Category</div>
+          <div class="tip-desc">Categories power the expense breakdown chart in the Finance Dashboard.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-pro" style="background:linear-gradient(135deg,#1e293b,#0f172a)">
+      <div class="card-body">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:12px">
+          <i class="bi bi-arrow-up-right-circle-fill" style="color:#4ECCA3"></i> Quick Links
+        </div>
+        <a href="/finance/" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.7);font-size:13px;text-decoration:none;transition:.15s" onmouseover="this.style.color='#4ECCA3'" onmouseout="this.style.color='rgba(255,255,255,.7)'">
+          <i class="bi bi-wallet2" style="color:#4ECCA3"></i> Finance Dashboard
+        </a>
+        <a href="/manager/" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.7);font-size:13px;text-decoration:none;transition:.15s" onmouseover="this.style.color='#4ECCA3'" onmouseout="this.style.color='rgba(255,255,255,.7)'">
+          <i class="bi bi-grid-1x2" style="color:#818cf8"></i> Main Dashboard
+        </a>
+        <a href="/sales-analytics/" style="display:flex;align-items:center;gap:10px;padding:10px 0;color:rgba(255,255,255,.7);font-size:13px;text-decoration:none;transition:.15s" onmouseover="this.style.color='#4ECCA3'" onmouseout="this.style.color='rgba(255,255,255,.7)'">
+          <i class="bi bi-bar-chart-line" style="color:#f59e0b"></i> Analytics
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+flatpickr('#expDate', { dateFormat: 'Y-m-d', allowInput: true });
+$(document).ready(function(){
+  if($.fn.select2) $('#catSelect').select2({ width:'100%', dropdownParent: $('#catSelect').parent() });
+});
+
+function selectCat(id, name, el) {
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  const sel = document.getElementById('catSelect');
+  sel.value = id;
+  if($.fn.select2) $(sel).trigger('change');
+}
+
+document.getElementById('expenseForm').addEventListener('submit', function(e){
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

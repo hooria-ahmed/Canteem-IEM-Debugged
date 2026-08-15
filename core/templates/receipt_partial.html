@@ -1,0 +1,85 @@
+<div class="receipt-inner" style="font-family: 'Courier Prime', monospace; font-size: 13px; line-height: 1.5; padding: 24px; background: #fff; width: 320px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    <div class="header text-center" style="text-align: center;">
+        <h1 style="font-size: 18px; margin: 0 0 3px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Events Up</h1>
+        <div style="font-weight: 700; font-size: 12px; margin-bottom: 2px;">Lucky Cement — Canteen</div>
+        <div style="font-size: 11px; color: #4b5563;">Korangi Industrial Area, Karachi</div>
+        <div style="font-size: 11px; color: #4b5563;">Tel: +92 21 111 786 000</div>
+    </div>
+    
+    <div class="divider" style="border-bottom: 1px dashed #9ca3af; margin: 12px 0;"></div>
+
+    <div class="meta-info" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Date: {{ txn.sale_date|date:"d-M-Y" }}</span>
+        <span>Time: {{ txn.sale_time|time:"H:i" }}</span>
+    </div>
+    <div class="meta-info" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Receipt #: {{ txn.transaction_no }}</span>
+    </div>
+    <div class="meta-info" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Cashier: {{ txn.cashier.username|upper }}</span>
+        <span>{% if txn.order_type == 'dine_in' %}DINE-IN{% if txn.table_no %} ({{txn.table_no}}){% endif %}{% else %}TAKEAWAY{% endif %}</span>
+    </div>
+
+    <div class="divider" style="border-bottom: 1px dashed #9ca3af; margin: 12px 0;"></div>
+
+    <table class="item-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="text-align: left; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px; font-weight: 700;">Item</th>
+                <th style="text-align: center; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px; font-weight: 700;">Qty</th>
+                <th style="text-align: right; border-bottom: 1px dashed #9ca3af; padding-bottom: 4px; font-weight: 700;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td style="padding: 6px 0; vertical-align: top; width: 50%;">{{ item.dish_name }}</td>
+                <td style="padding: 6px 0; vertical-align: top; width: 15%; text-align: center;">x{{ item.quantity }}</td>
+                <td style="padding: 6px 0; vertical-align: top; width: 35%; text-align: right;">Rs. {{ item.line_total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="divider" style="border-bottom: 1px dashed #9ca3af; margin: 12px 0;"></div>
+
+    <div class="totals">
+        <div class="totals-row" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Subtotal</span>
+            <span>Rs. {{ txn.sub_total|floatformat:0 }}</span>
+        </div>
+        <div class="totals-row grand" style="display: flex; justify-content: space-between; margin: 8px 0; padding-top: 8px; border-top: 1px dashed #9ca3af; font-size: 16px; font-weight: 700;">
+            <span>TOTAL</span>
+            <span>Rs. {{ txn.total_amount|floatformat:0 }}</span>
+        </div>
+        <div class="totals-row" style="display: flex; justify-content: space-between; margin-bottom: 4px; margin-top: 8px;">
+            <span>Paid ({{ txn.payment_method|upper }})</span>
+            <span>Rs. {{ txn.amount_received|floatformat:0 }}</span>
+        </div>
+        <div class="totals-row" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Change</span>
+            <span>Rs. {{ txn.change_returned|floatformat:0 }}</span>
+        </div>
+    </div>
+
+    <div class="divider" style="border-bottom: 1px dashed #9ca3af; margin: 12px 0;"></div>
+
+    <div class="footer text-center" style="margin-top: 20px; font-size: 11px; color: #4b5563; text-align: center;">
+        <div class="font-bold" style="font-weight: 700;">Thank You For Your Visit!</div>
+        <div style="margin-top: 4px;">Powered by CanteenERP</div>
+    </div>
+</div>
+
+<div class="actions no-print" style="width: 320px; margin: 20px auto 0; display: flex; gap: 12px;">
+    <a href="/pos/" style="flex: 1; padding: 12px; border-radius: 8px; background: #e5e7eb; color: #374151; font-weight: 600; font-size: 14px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i data-lucide="arrow-left" style="width: 18px;"></i> POS
+    </a>
+    <button onclick="window.print()" style="flex: 1; padding: 12px; border-radius: 8px; background: #10b981; color: white; font-weight: 600; font-size: 14px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i data-lucide="printer" style="width: 18px;"></i> Print
+    </button>
+</div>
+
+<script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Signal to parent to show modal if needed, though HTMX target handles it.
+</script>

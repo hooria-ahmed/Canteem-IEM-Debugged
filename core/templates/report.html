@@ -1,0 +1,241 @@
+{% extends "base_manager.html" %}
+{% block title %}Daily Report - {{ report.report_date|date:"F d, Y" }}{% endblock %}
+{% block page_title %}Daily Report{% endblock %}
+{% block page_subtitle %}{{ report.report_date|date:"l, F d, Y" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.report-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--bg-pure);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 36px 40px;
+}
+
+.report-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.report-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+}
+
+.report-date {
+    font-size: 14px;
+    color: var(--slate);
+    font-weight: 500;
+}
+
+.report-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.metric-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.metric-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.metric-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.metric-val.success { color: var(--green); }
+.metric-val.warning { color: var(--amber); }
+
+.report-divider {
+    border: none;
+    border-top: 1px dashed var(--border-2);
+    margin: 24px 0;
+}
+
+.report-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.report-line:last-child {
+    border-bottom: none;
+}
+
+.line-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.line-val {
+    font-size: 16px;
+    font-weight: 600;
+    font-family: var(--mono);
+}
+
+.val-success { color: var(--green); }
+.val-warning { color: var(--amber); }
+.val-danger { color: var(--red); }
+
+.report-total {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.total-label {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.total-val {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--mono);
+}
+
+.btn-back-wrap {
+    text-align: center;
+    margin-top: 32px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 13px;
+    transition: all var(--transition);
+}
+
+.btn-back:hover {
+    background: var(--border);
+}
+
+@media(max-width: 768px) {
+    .report-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media print {
+    body { background: white !important; }
+    aside, .btn-back-wrap, .page-hero { display: none !important; }
+    main { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
+    .report-container { border: none; box-shadow: none; padding: 0; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .print-header h1 { font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+    .print-header p { font-size: 14px; margin: 5px 0 0; color: #555; }
+    .report-header { display: none; }
+}
+.print-header { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="print-header">
+    <h1>Events Up</h1>
+    <p>Daily Financial Report</p>
+    <p style="font-weight: 700;">{{ report.report_date|date:"l, F d, Y" }}</p>
+</div>
+<div class="report-container" data-aos="fade-up">
+    <div class="report-header">
+        <div class="report-title">Daily Financial Report</div>
+        <div class="report-date">{{ report.report_date|date:"l, F d, Y" }}</div>
+    </div>
+
+    <div class="report-metrics-grid">
+        <div class="metric-box">
+            <div class="metric-label">Transactions</div>
+            <div class="metric-val">{{ report.total_transactions }}</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Items Sold</div>
+            <div class="metric-val">{{ report.total_items_sold }}</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Gross Rev</div>
+            <div class="metric-val success">Rs. {{ report.gross_revenue|floatformat:0 }}</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-label">Discounts</div>
+            <div class="metric-val warning">Rs. {{ report.total_discounts|floatformat:0 }}</div>
+        </div>
+    </div>
+
+    <div class="report-line">
+        <span class="line-label">Net Revenue</span>
+        <span class="line-val val-success">Rs. {{ report.net_revenue|floatformat:0 }}</span>
+    </div>
+    
+    <div class="report-line">
+        <span class="line-label">Cost of Goods Sold (COGS)</span>
+        <span class="line-val val-warning">Rs. {{ report.cost_of_goods_sold|floatformat:0 }}</span>
+    </div>
+    
+    <hr class="report-divider">
+
+    <div class="report-line">
+        <span class="line-label">Gross Profit</span>
+        <span class="line-val {% if report.gross_profit >= 0 %}val-success{% else %}val-danger{% endif %}">
+            Rs. {{ report.gross_profit|floatformat:0 }}
+        </span>
+    </div>
+    
+    <div class="report-line">
+        <span class="line-label">Total Expenses</span>
+        <span class="line-val val-warning">Rs. {{ report.total_expenses|floatformat:0 }}</span>
+    </div>
+
+    <div class="report-total">
+        <span class="total-label">Net Profit</span>
+        <span class="total-val {% if report.net_profit >= 0 %}val-success{% else %}val-danger{% endif %}">
+            Rs. {{ report.net_profit|floatformat:0 }}
+        </span>
+    </div>
+
+    <div class="btn-back-wrap">
+        <a href="/manager/" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <button class="btn-back" style="margin-left: 10px; background: var(--text-1); color: #fff; border-color: var(--text-1);" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print Report
+        </button>
+    </div>
+</div>
+{% endblock %}

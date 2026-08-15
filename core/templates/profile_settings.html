@@ -1,0 +1,275 @@
+{% extends "base_manager.html" %}
+{% block title %}Account Settings{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+{% block page_subtitle %}Manage your profile, security, and privacy preferences{% endblock %}
+
+{% block extra_head %}
+<style>
+.settings-grid { display: grid; grid-template-columns: 300px 1fr; gap: 40px; min-height: 600px; }
+.settings-sidebar { display: flex; flex-direction: column; gap: 8px; }
+
+.settings-nav-item {
+    padding: 16px 20px; border-radius: 16px; font-weight: 750; font-size: 14px;
+    color: var(--text-3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; border: 1.5px solid transparent; background: transparent; width: 100%; text-align: left;
+}
+.settings-nav-item i { font-size: 18px; opacity: 0.7; }
+.settings-nav-item:hover { background: #f8fafc; color: var(--text-1); transform: translateX(5px); }
+.settings-nav-item.active { background: #fff; color: var(--primary); border-color: var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+.settings-nav-item.active i { opacity: 1; }
+
+.settings-card {
+    background: var(--bg-pure); 
+    border: 1.5px solid var(--border); 
+    border-radius: 28px;
+    padding: 40px; 
+    box-shadow: 0 4px 25px rgba(0,0,0,0.02); 
+    position: relative;
+}
+
+.settings-section { display: none; }
+.settings-section.active { display: block; animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.form-section-title { font-size: 18px; font-weight: 900; color: var(--text-1); margin-bottom: 32px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.01em; }
+.form-section-title i { color: var(--primary); font-size: 24px; }
+
+.avatar-preview-wrap { display: flex; align-items: center; gap: 32px; margin-bottom: 40px; background: #f8fafc; padding: 24px; border-radius: 24px; border: 1px solid var(--border); }
+.avatar-large {
+    width: 100px; height: 100px; border-radius: 32px;
+    background: linear-gradient(135deg, #10B981, #065f46);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; color: #fff; font-weight: 900;
+    overflow: hidden; border: 4px solid #fff; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
+    flex-shrink: 0;
+}
+.avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.label-pro { display: block; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-4); margin-bottom: 12px; }
+.input-pro {
+    width: 100%; padding: 14px 18px; background: #f8fafc; border: 1.5px solid var(--border);
+    border-radius: 16px; font-size: 14.5px; font-weight: 700; color: var(--text-1);
+    transition: all 0.3s; outline: none;
+}
+.input-pro:focus { background: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.1); }
+
+/* Switch Style */
+.toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 20px; background: #f8fafc; border-radius: 20px; margin-bottom: 16px; border: 1px solid var(--border); transition: all 0.2s; }
+.toggle-group:hover { background: #fff; border-color: var(--primary); }
+.toggle-info h4 { font-size: 15px; font-weight: 850; color: var(--text-1); margin-bottom: 4px; }
+.toggle-info p { font-size: 12.5px; color: var(--text-4); font-weight: 600; }
+
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+.btn-save {
+    padding: 16px 40px; background: #0f172a; color: #fff; border: none;
+    border-radius: 20px; font-size: 15px; font-weight: 850; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+    display: inline-flex; align-items: center; gap: 12px;
+}
+.btn-save:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.25); background: #000; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+    <div class="settings-sidebar">
+        <button class="settings-nav-item active" onclick="showSection('profile')">
+            <i class="bi bi-person-circle"></i> Profile Settings
+        </button>
+        <button class="settings-nav-item" onclick="showSection('security')">
+            <i class="bi bi-shield-lock"></i> Security
+        </button>
+        <button class="settings-nav-item" onclick="showSection('privacy')">
+            <i class="bi bi-eye-slash"></i> Privacy
+        </button>
+        <button class="settings-nav-item" onclick="showSection('notifications')">
+            <i class="bi bi-bell"></i> Notifications
+        </button>
+    </div>
+
+    <div class="settings-main">
+        {% if success %}
+        <div class="success-alert" data-aos="zoom-in" style="background: #ECFDF5; border: 1px solid #10B981; color: #065F46; padding: 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-weight: 600;">
+            <i class="bi bi-check-circle-fill" style="font-size: 20px;"></i> Profile updated successfully!
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="error-banner" data-aos="zoom-in" style="background: #FEF2F2; border: 1px solid #EF4444; color: #B91C1C; padding: 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-weight: 600;">
+            <i class="bi bi-exclamation-triangle-fill" style="font-size: 20px;"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <div class="settings-card" data-aos="fade-up">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <!-- PROFILE SECTION -->
+                <div id="section-profile" class="settings-section active">
+                    <div class="form-section-title"><i class="bi bi-person-lines-fill"></i> Personal Information</div>
+                    
+                    <div class="avatar-preview-wrap">
+                        <div class="avatar-large" id="avatar-preview">
+                            {% if user.avatar_path %}
+                                <img src="{{ user.avatar_path }}" alt="Avatar" class="avatar-img" data-fallback="{{ user.full_name|slice:":1"|upper }}">
+                            {% else %}
+                                {{ user.full_name|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <label class="label-pro">Profile Picture URL</label>
+                            <input type="text" name="avatar_path" id="avatar-input" class="input-pro" value="{{ user.avatar_path|default:'' }}" placeholder="https://example.com/avatar.jpg">
+                            <p style="font-size: 11px; color: var(--text-4); margin-top: 8px;">Update your photo across the dashboard</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label-pro">Full Name</label>
+                            <input type="text" name="full_name" class="input-pro" value="{{ user.full_name }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="label-pro">Username</label>
+                            <input type="text" class="input-pro" value="{{ user.user_name }}" disabled style="background: var(--bg); opacity: 0.7;">
+                        </div>
+                        <div class="form-group">
+                            <label class="label-pro">Role</label>
+                            <input type="text" class="input-pro" value="{{ user.role|title }}" disabled style="background: var(--bg); opacity: 0.7;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECURITY SECTION -->
+                <div id="section-security" class="settings-section">
+                    <div class="form-section-title"><i class="bi bi-shield-lock-fill"></i> Security Settings</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label-pro">New Password</label>
+                            <input type="password" name="new_password" class="input-pro" placeholder="Enter new password">
+                        </div>
+                        <div class="form-group">
+                            <label class="label-pro">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="input-pro" placeholder="Confirm new password">
+                        </div>
+                    </div>
+                    <div style="margin-top: 24px; padding: 16px; background: #FFF7ED; border-radius: 12px; border: 1px solid #FFEDD5;">
+                        <p style="font-size: 12px; color: #9A3412; font-weight: 500;">
+                            <i class="bi bi-info-circle-fill"></i> Leave these fields blank if you don't want to change your password.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- PRIVACY SECTION -->
+                <div id="section-privacy" class="settings-section">
+                    <div class="form-section-title"><i class="bi bi-eye-slash-fill"></i> Privacy & Visibility</div>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <h4>Public Profile</h4>
+                            <p>Show your full name in audit logs and reports</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <h4>Activity Tracking</h4>
+                            <p>Log your login sessions and system actions</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS SECTION -->
+                <div id="section-notifications" class="settings-section">
+                    <div class="form-section-title"><i class="bi bi-bell-fill"></i> Notification Preferences</div>
+                    <p style="color: var(--text-4); font-size: 13px;">Manage how you receive alerts and system updates.</p>
+                    <div style="margin-top: 20px;">
+                        <div class="toggle-group">
+                            <div class="toggle-info">
+                                <h4>Email Notifications</h4>
+                                <p>Receive weekly sales summaries via email</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-group">
+                            <div class="toggle-info">
+                                <h4>System Alerts</h4>
+                                <p>In-app alerts for low stock levels</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 48px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn-save">
+                        <i class="bi bi-check2-circle"></i> Update All Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSection(sectionId) {
+    // Update nav items
+    document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    // Update sections
+    document.querySelectorAll('.settings-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.getElementById('section-' + sectionId).classList.add('active');
+}
+
+// Live Avatar Preview
+document.getElementById('avatar-input').addEventListener('input', function(e) {
+    const url = e.target.value;
+    const preview = document.getElementById('avatar-preview');
+    if (url) {
+        preview.innerHTML = `<img src="${url}" alt="Avatar" class="avatar-img" data-fallback="{{ user.full_name|slice:":1"|upper }}">`;
+        attachAvatarListeners();
+    } else {
+        preview.innerHTML = `{{ user.full_name|slice:":1"|upper }}`;
+    }
+});
+
+function attachAvatarListeners() {
+    document.querySelectorAll('.avatar-img').forEach(img => {
+        img.onerror = function() {
+            const fallback = this.getAttribute('data-fallback');
+            const parent = this.parentElement;
+            this.style.display = 'none';
+            parent.innerText = fallback || '?';
+        };
+    });
+}
+attachAvatarListeners();
+</script>
+{% endblock %}

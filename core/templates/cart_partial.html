@@ -1,0 +1,53 @@
+{% if cart_items %}
+    {% for item in cart_items %}
+    <div class="cart-item" id="cart-item-{{ item.dish_id }}" style="padding: 16px; margin-bottom: 8px;">
+        <div class="cart-item-info">
+            <div class="cart-item-name" style="font-size: 14.5px; margin-bottom: 4px;">{{ item.name }}</div>
+            <div class="cart-item-price" data-total="{{ item.total }}" style="font-size: 13px;">Rs. {{ item.price|floatformat:0 }} &times; {{ item.qty }} = <strong style="color:var(--text-1);">Rs. {{ item.total|floatformat:0 }}</strong></div>
+        </div>
+        <div class="qty-ctrl" style="padding: 6px; border-radius: 12px;">
+            <button class="qty-btn"
+                hx-post="{% url 'remove_from_cart_ajax' item.dish_id %}"
+                hx-target="#cartContainer"
+                hx-swap="innerHTML"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                style="width: 32px; height: 32px; border-radius: 8px;">−</button>
+            <span class="qty-val" style="width: 24px; font-size: 14px; text-align: center;">{{ item.qty }}</span>
+            <button class="qty-btn"
+                hx-post="{% url 'add_to_cart_ajax' item.dish_id %}"
+                hx-target="#cartContainer"
+                hx-swap="innerHTML"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                style="width: 32px; height: 32px; border-radius: 8px;">+</button>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-4); gap:12px; padding:40px">
+        <i data-lucide="shopping-cart" style="width:48px; height:48px; opacity:0.3"></i>
+        <div style="font-weight:700; font-size:14px">Cart is empty</div>
+        <div style="font-size:12px; font-weight:500">Tap a dish to add it</div>
+    </div>
+{% endif %}
+
+{% if not hide_footer %}
+<!-- OOB UPDATE FOR ENTIRE FOOTER -->
+<div class="cart-footer" id="cartFooter" hx-swap-oob="true">
+    <div class="summary-row">
+        <span>Subtotal</span>
+        <span>Rs. {{ grand_total|floatformat:0 }}</span>
+    </div>
+    <div class="summary-row">
+        <span>Tax (0%)</span>
+        <span>Rs. 0</span>
+    </div>
+    <div class="summary-total">
+        <span>Total</span>
+        <span style="color:var(--primary); font-size: 24px; font-weight: 800;">Rs. {{ grand_total|floatformat:0 }}</span>
+    </div>
+
+    <button class="checkout-btn" onclick="openCheckout()" {% if not cart_items or grand_total <= 0 %}disabled{% endif %}>
+        <i data-lucide="credit-card"></i> PROCEED TO CHECKOUT
+    </button>
+</div>
+{% endif %}

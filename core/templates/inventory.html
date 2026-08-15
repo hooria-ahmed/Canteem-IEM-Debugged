@@ -1,0 +1,527 @@
+{% extends "base_manager.html" %}
+{% block title %}Stock Control{% endblock %}
+{% block page_title %}Inventory Control{% endblock %}
+{% block page_subtitle %}Manage raw materials, stock levels, and pricing{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Tab Bar ─────────────────────────────────────────────── */
+.tab-bar {
+    display: flex; gap: 6px; padding: 6px;
+    background: var(--surface-2); border-radius: 18px;
+    margin-bottom: 32px; width: fit-content;
+}
+.tab-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 12px; border: none;
+    background: transparent; cursor: pointer; font-family: var(--font);
+    font-size: 13.5px; font-weight: 700; color: var(--text-3);
+    transition: all var(--transition); white-space: nowrap;
+}
+.tab-btn:hover { background: var(--bg-pure); color: var(--text-1); }
+.tab-btn.active { background: var(--bg-pure); color: var(--primary); box-shadow: var(--shadow-sm); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Premium Form Inputs ─────────────────────────────────── */
+.form-card { max-width: 620px; }
+.field-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
+.field-group label {
+    font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-3);
+}
+.field-group input[type="text"],
+.field-group input[type="number"],
+.field-group select {
+    padding: 13px 16px; border: 1.5px solid var(--border); border-radius: 14px;
+    font-family: var(--font); font-size: 14.5px; font-weight: 600;
+    color: var(--text-1); background: var(--bg-pure); outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    appearance: none; -webkit-appearance: none;
+}
+.field-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 42px;
+}
+.field-group input:focus,
+.field-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+}
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn-danger-pro {
+    background: #FEF2F2; color: #DC2626; border: 1.5px solid #FECACA;
+    padding: 13px 28px; border-radius: 14px; font-weight: 800; font-size: 14px;
+    font-family: var(--font); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 8px; transition: all var(--transition);
+}
+.btn-danger-pro:hover { background: #DC2626; color: white; border-color: #DC2626; }
+.btn-info-pro {
+    background: #EFF6FF; color: #1D4ED8; border: 1.5px solid #BFDBFE;
+    padding: 13px 28px; border-radius: 14px; font-weight: 800; font-size: 14px;
+    font-family: var(--font); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 8px; transition: all var(--transition);
+}
+.btn-info-pro:hover { background: #1D4ED8; color: white; border-color: #1D4ED8; }
+.btn-amber-pro {
+    background: #FFFBEB; color: #D97706; border: 1.5px solid #FDE68A;
+    padding: 13px 28px; border-radius: 14px; font-weight: 800; font-size: 14px;
+    font-family: var(--font); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 8px; transition: all var(--transition);
+}
+.btn-amber-pro:hover { background: #D97706; color: white; border-color: #D97706; }
+
+/* ── Stock Table ─────────────────────────────────────────── */
+.stock-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.stock-bar { height: 6px; flex: 1; border-radius: 4px; background: var(--surface-2); overflow: hidden; min-width: 80px; }
+.stock-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+
+/* ── File Uploader ───────────────────────────────────────── */
+.file-drop {
+    border: 2px dashed var(--border); border-radius: 20px; padding: 48px 32px;
+    text-align: center; cursor: pointer; transition: all var(--transition);
+    background: var(--bg);
+}
+.file-drop:hover, .file-drop.dragover {
+    border-color: var(--primary); background: var(--primary-soft);
+}
+.file-drop input[type="file"] { display: none; }
+.file-drop-icon { color: var(--text-4); margin-bottom: 16px; }
+.file-drop-label { font-size: 15px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; }
+.file-drop-hint { font-size: 13px; color: var(--text-4); font-weight: 500; }
+.file-selected { font-size: 13px; font-weight: 700; color: var(--primary); margin-top: 12px; }
+
+/* ── Alert ───────────────────────────────────────────────── */
+.msg-bar {
+    padding: 14px 20px; border-radius: 14px; margin-bottom: 24px;
+    font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 10px;
+}
+.msg-bar.success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+.msg-bar.error   { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+.msg-bar.info    { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+
+/* ── Card overrides for this page ───────────────────────── */
+.card-head h3 { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 850; }
+.badge-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 10px; font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.badge-status.ok  { background: #DCFCE7; color: #166534; }
+.badge-status.low { background: #FEF2F2; color: #991B1B; }
+.badge-cat { background: #EFF6FF; color: #1E40AF; padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; }
+
+table.inv-table { width: 100%; border-collapse: collapse; }
+table.inv-table th {
+    padding: 12px 16px; font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-4); border-bottom: 1px solid var(--border);
+    background: var(--bg); text-align: left;
+}
+table.inv-table td {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13.5px; vertical-align: middle;
+}
+table.inv-table tr:last-child td { border-bottom: none; }
+table.inv-table tbody tr:hover td { background: var(--bg); }
+
+/* Computed stock styles to avoid inline style attribute errors */
+.stock-status-low { color: var(--danger) !important; }
+.stock-status-ok { color: var(--primary) !important; }
+
+.stock-fill-low { background-color: #EF4444 !important; }
+.stock-fill-ok { background-color: #10B981 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if message %}
+<div class="msg-bar {% if message_type == 'success' %}success{% else %}error{% endif %}" data-aos="fade-down">
+    {% if message_type == 'success' %}
+    <i data-lucide="check-circle" style="width:18px;flex-shrink:0"></i>
+    {% else %}
+    <i data-lucide="x-circle" style="width:18px;flex-shrink:0"></i>
+    {% endif %}
+    {{ message }}
+</div>
+{% endif %}
+
+<!-- TAB BAR -->
+<div class="tab-bar" data-aos="fade-down">
+    <button class="tab-btn {% if active_tab == 'stock' or not active_tab %}active{% endif %}" onclick="switchTab('stock', this)">
+        <i data-lucide="package" style="width:16px"></i> Stock List
+    </button>
+    <button class="tab-btn {% if active_tab == 'add' %}active{% endif %}" onclick="switchTab('add', this)">
+        <i data-lucide="plus-circle" style="width:16px"></i> Add Stock
+    </button>
+    <button class="tab-btn {% if active_tab == 'wastage' %}active{% endif %}" onclick="switchTab('wastage', this)">
+        <i data-lucide="trash-2" style="width:16px"></i> Log Wastage
+    </button>
+    <button class="tab-btn {% if active_tab == 'cost' %}active{% endif %}" onclick="switchTab('cost', this)">
+        <i data-lucide="pencil" style="width:16px"></i> Update Cost
+    </button>
+    <button class="tab-btn {% if active_tab == 'price' %}active{% endif %}" onclick="switchTab('price', this)">
+        <i data-lucide="tag" style="width:16px"></i> Update Price
+    </button>
+    <button class="tab-btn {% if active_tab == 'bulk' %}active{% endif %}" onclick="switchTab('bulk', this)">
+        <i data-lucide="file-up" style="width:16px"></i> Bulk Import
+    </button>
+</div>
+
+<!-- ══ STOCK LIST ══════════════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'stock' or not active_tab %}active{% endif %}" id="tab-stock">
+    <div class="card-pro" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3>
+                <i data-lucide="boxes" style="color:var(--primary)"></i>
+                Raw Materials Register
+            </h3>
+            <span style="background:#DCFCE7;color:#166534;padding:5px 14px;border-radius:10px;font-size:12px;font-weight:800">
+                {{ materials|length }} Materials
+            </span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="inv-table" id="stockTable">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>Cost / Unit</th>
+                        <th style="min-width:200px">Stock Level</th>
+                        <th>Reorder At</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in materials %}
+                    <tr>
+                        <td style="font-weight:800;color:var(--text-1)">{{ m.name }}</td>
+                        <td><span class="badge-cat">{{ m.category.name|default:"—" }}</span></td>
+                        <td style="color:var(--text-3);font-weight:600">{{ m.units }}</td>
+                        <td style="font-weight:700">Rs. {{ m.cost_per_unit|floatformat:2 }}</td>
+                        <td>
+                            <div class="stock-bar-wrap">
+                                <span class="{% if m.current_stock <= m.reorder_level %}stock-status-low{% else %}stock-status-ok{% endif %}" style="font-weight:800;min-width:44px;font-size:13.5px">
+                                    {{ m.current_stock|floatformat:1 }}
+                                </span>
+                                <div class="stock-bar">
+                                    <div class="stock-fill {% if m.current_stock <= m.reorder_level %}stock-fill-low{% else %}stock-fill-ok{% endif %} stock-level-bar" 
+                                         data-stock="{{ m.current_stock|default:0 }}" 
+                                         data-reorder="{{ m.reorder_level|default:0 }}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color:var(--text-3);font-weight:600">{{ m.reorder_level|floatformat:1 }}</td>
+                        <td>
+                            {% if m.current_stock <= m.reorder_level %}
+                            <span class="badge-status low">
+                                <i data-lucide="alert-circle" style="width:12px"></i> Low
+                            </span>
+                            {% else %}
+                            <span class="badge-status ok">
+                                <i data-lucide="check" style="width:12px"></i> OK
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:60px;color:var(--text-4)">
+                            <i data-lucide="package" style="width:40px;height:40px;opacity:.3;display:block;margin:0 auto 12px"></i>
+                            <div style="font-weight:700">No materials found</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══ ADD STOCK ═══════════════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'add' %}active{% endif %}" id="tab-add">
+    <div class="card-pro form-card" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3><i data-lucide="plus-circle" style="color:var(--primary)"></i> Add Stock</h3>
+        </div>
+        <div style="padding:28px">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_stock">
+                <div class="field-group">
+                    <label>Select Material</label>
+                    <select name="material_id" required>
+                        <option value="">— Choose a material —</option>
+                        {% for m in materials %}
+                        <option value="{{ m.id }}">{{ m.name }} ({{ m.current_stock|floatformat:1 }} {{ m.units }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>Quantity to Add</label>
+                    <input type="number" name="quantity" step="0.01" min="0.01" placeholder="e.g. 25.0" required>
+                </div>
+                <button type="submit" class="btn-primary-pro" style="width:100%;justify-content:center;padding:14px">
+                    <i data-lucide="plus" style="width:18px"></i> Add to Stock
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ LOG WASTAGE ═════════════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'wastage' %}active{% endif %}" id="tab-wastage">
+    <div class="card-pro form-card" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3><i data-lucide="trash-2" style="color:#EF4444"></i> Log Wastage</h3>
+        </div>
+        <div style="padding:28px">
+            <div class="msg-bar info" style="margin-bottom:24px">
+                <i data-lucide="info" style="width:18px;flex-shrink:0"></i>
+                This will deduct from the current stock and record an audit entry.
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="log_wastage">
+                <div class="field-group">
+                    <label>Select Material</label>
+                    <select name="material_id" required>
+                        <option value="">— Choose a material —</option>
+                        {% for m in materials %}
+                        <option value="{{ m.id }}">{{ m.name }} ({{ m.current_stock|floatformat:1 }} {{ m.units }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-grid">
+                    <div class="field-group">
+                        <label>Quantity Wasted</label>
+                        <input type="number" name="quantity" step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="field-group">
+                        <label>Reason</label>
+                        <input type="text" name="reason" placeholder="e.g. Spoilage" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-danger-pro" style="width:100%;justify-content:center;padding:14px">
+                    <i data-lucide="trash-2" style="width:18px"></i> Log Wastage
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ UPDATE COST ═════════════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'cost' %}active{% endif %}" id="tab-cost">
+    <div class="card-pro form-card" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3><i data-lucide="pencil" style="color:#3B82F6"></i> Update Material Cost</h3>
+        </div>
+        <div style="padding:28px">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_cost">
+                <div class="field-group">
+                    <label>Select Material</label>
+                    <select name="material_id" required>
+                        <option value="">— Choose a material —</option>
+                        {% for m in materials %}
+                        <option value="{{ m.id }}">{{ m.name }} — Rs.{{ m.cost_per_unit|floatformat:2 }}/{{ m.units }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>New Cost per Unit (Rs.)</label>
+                    <input type="number" name="new_cost" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <button type="submit" class="btn-info-pro" style="width:100%;justify-content:center;padding:14px">
+                    <i data-lucide="save" style="width:18px"></i> Save New Cost
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ UPDATE DISH PRICE ═══════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'price' %}active{% endif %}" id="tab-price">
+    <div class="card-pro form-card" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3><i data-lucide="tag" style="color:#F59E0B"></i> Update Dish Price</h3>
+        </div>
+        <div style="padding:28px">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_dish_price">
+                <div class="field-group">
+                    <label>Select Dish</label>
+                    <select name="dish_id" required>
+                        <option value="">— Choose a dish —</option>
+                        {% for d in dishes %}
+                        <option value="{{ d.id }}">{{ d.name }} — Rs.{{ d.selling_price|floatformat:0 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>New Selling Price (Rs.)</label>
+                    <input type="number" name="new_price" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <button type="submit" class="btn-amber-pro" style="width:100%;justify-content:center;padding:14px">
+                    <i data-lucide="save" style="width:18px"></i> Update Price
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ BULK IMPORT ══════════════════════════════════════════ -->
+<div class="tab-pane {% if active_tab == 'bulk' %}active{% endif %}" id="tab-bulk">
+    <div class="card-pro form-card" data-aos="fade-up">
+        <div class="card-head" style="padding:22px 28px">
+            <h3><i data-lucide="file-up" style="color:var(--primary)"></i> Bulk CSV Import</h3>
+        </div>
+        <div style="padding:28px">
+            <div class="msg-bar info" style="margin-bottom:24px">
+                <i data-lucide="info" style="width:18px;flex-shrink:0"></i>
+                CSV must have <strong>name</strong> and <strong>quantity</strong> column headers.
+            </div>
+
+            <form id="bulkImportForm">
+                <div class="file-drop" id="fileDrop" onclick="document.getElementById('csvFile').click()">
+                    <input type="file" id="csvFile" accept=".csv">
+                    <div class="file-drop-icon">
+                        <i data-lucide="cloud-upload" style="width:48px;height:48px"></i>
+                    </div>
+                    <div class="file-drop-label">Click to choose or drag & drop</div>
+                    <div class="file-drop-hint">CSV files only · max 5MB</div>
+                    <div class="file-selected" id="fileSelectedLabel" style="display:none"></div>
+                </div>
+
+                <button type="submit" id="importBtn" class="btn-primary-pro" style="width:100%;justify-content:center;padding:14px;margin-top:20px">
+                    <i data-lucide="upload" style="width:18px"></i> Upload &amp; Process
+                </button>
+            </form>
+
+            <div id="importResult" style="margin-top:20px;display:none">
+                <div class="msg-bar success" id="importSuccess" style="display:none"></div>
+                <div class="msg-bar error"   id="importError"   style="display:none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function () {
+    lucide.createIcons();
+
+    // DataTable
+    if ($.fn.DataTable) {
+        $('#stockTable').DataTable({
+            pageLength: 20,
+            order: [[0, 'asc']],
+            dom: "<'dt-toolbar'<'dt-len'l><'dt-search'f>>t<'dt-footer'<'dt-info'i><'dt-pages'p>>",
+            language: { searchPlaceholder: 'Search materials...' }
+        });
+    }
+
+    // Dynamically calculate and set progress bar widths to avoid static CSS validator warnings
+    $('.stock-level-bar').each(function() {
+        const stock = parseFloat($(this).data('stock')) || 0;
+        const reorder = parseFloat($(this).data('reorder')) || 0;
+        const total = stock + reorder;
+        const percent = total > 0 ? (stock / total) * 100 : 0;
+        $(this).css('width', percent + '%');
+    });
+});
+
+// Tab switching
+function switchTab(id, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + id).classList.add('active');
+}
+
+// File drop zone
+const drop = document.getElementById('fileDrop');
+const fileInput = document.getElementById('csvFile');
+
+if (drop && fileInput) {
+    fileInput.addEventListener('change', () => {
+        const f = fileInput.files[0];
+        const lbl = document.getElementById('fileSelectedLabel');
+        if (f) { lbl.textContent = '✓ ' + f.name; lbl.style.display = 'block'; }
+    });
+    ['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => {
+        ev.preventDefault(); drop.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => {
+        ev.preventDefault(); drop.classList.remove('dragover');
+    }));
+    drop.addEventListener('drop', ev => {
+        const f = ev.dataTransfer.files[0];
+        if (f) {
+            const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
+            const lbl = document.getElementById('fileSelectedLabel');
+            lbl.textContent = '✓ ' + f.name; lbl.style.display = 'block';
+        }
+    });
+}
+
+// Bulk import form submit
+document.getElementById('bulkImportForm')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    if (!file) { alert('Please select a CSV file first.'); return; }
+
+    const btn = document.getElementById('importBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader" style="width:18px;animation:spin 1s linear infinite"></i> Processing…';
+    lucide.createIcons();
+
+    const formData = new FormData();
+    formData.append('csv_file', file);
+
+    try {
+        const res  = await fetch('/bulk-stock-import/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+        const data = await res.json();
+
+        document.getElementById('importResult').style.display = 'block';
+        if (data.success) {
+            document.getElementById('importSuccess').style.display = 'flex';
+            document.getElementById('importSuccess').innerHTML =
+                '<i data-lucide="check-circle" style="width:18px;flex-shrink:0"></i> Successfully updated ' + data.count + ' items!';
+            document.getElementById('importError').style.display = 'none';
+            lucide.createIcons();
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            document.getElementById('importError').style.display = 'flex';
+            document.getElementById('importError').innerHTML =
+                '<i data-lucide="x-circle" style="width:18px;flex-shrink:0"></i> ' + (data.error || 'Import failed');
+            document.getElementById('importSuccess').style.display = 'none';
+            lucide.createIcons();
+        }
+    } catch (err) {
+        alert('Network error — check connection.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="upload" style="width:18px"></i> Upload &amp; Process';
+        lucide.createIcons();
+    }
+});
+</script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

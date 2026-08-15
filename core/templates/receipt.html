@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt - {{ txn.transaction_no }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            color: #111827;
+        }
+
+        .receipt-container {
+            background: #fff;
+            width: 320px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+            /* Jagged edge effect for thermal paper */
+            background-image: radial-gradient(#fff 50%, transparent 50%), radial-gradient(#fff 50%, transparent 50%);
+            background-size: 16px 16px;
+            background-position: 0 100%, 8px 100%;
+            background-repeat: repeat-x;
+            margin-bottom: 20px;
+        }
+
+        .receipt-inner {
+            font-family: 'Courier Prime', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        
+        .header h1 {
+            font-size: 20px;
+            margin: 0 0 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .divider {
+            border-bottom: 1px dashed #9ca3af;
+            margin: 12px 0;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .item-table th {
+            text-align: left;
+            border-bottom: 1px dashed #9ca3af;
+            padding-bottom: 4px;
+            font-weight: 700;
+        }
+        .item-table td {
+            padding: 6px 0;
+            vertical-align: top;
+        }
+        .item-name { width: 50%; }
+        .item-qty { width: 15%; text-align: center; }
+        .item-total { width: 35%; text-align: right; }
+
+        .totals {
+            margin-top: 10px;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .totals-row.grand {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 8px 0;
+            padding-top: 8px;
+            border-top: 1px dashed #9ca3af;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #4b5563;
+        }
+
+        /* Action Buttons */
+        .actions {
+            width: 320px;
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-print {
+            background-color: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+        .btn-print:hover { background-color: #059669; }
+
+        .btn-pos {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        .btn-pos:hover { background-color: #d1d5db; }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .receipt-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                max-width: 300px;
+                background-image: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <div class="receipt-container">
+        <div class="receipt-inner">
+            <div class="header text-center">
+                <h1 style="font-size:18px; letter-spacing:1px;">Events Up</h1>
+                <div style="font-weight:700; font-size:12px; margin-bottom:2px;">Lucky Cement — Canteen</div>
+                <div style="font-size:11px; color:#4b5563;">Korangi Industrial Area, Karachi</div>
+                <div style="font-size:11px; color:#4b5563;">Tel: +92 21 111 786 000</div>
+            </div>
+            
+            <div class="divider"></div>
+
+            <div class="meta-info">
+                <span>Date: {{ txn.sale_date|date:"d-M-Y" }}</span>
+                <span>Time: {{ txn.sale_time|time:"H:i" }}</span>
+            </div>
+            <div class="meta-info">
+                <span>Receipt #: {{ txn.transaction_no }}</span>
+            </div>
+            <div class="meta-info">
+                <span>Cashier: {{ txn.cashier.username|upper }}</span>
+                <span>{% if txn.order_type == 'dine_in' %}DINE-IN{% if txn.table_no %} ({{txn.table_no}}){% endif %}{% else %}TAKEAWAY{% endif %}</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <table class="item-table">
+                <thead>
+                    <tr>
+                        <th class="item-name">Item</th>
+                        <th class="item-qty">Qty</th>
+                        <th class="item-total">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="item-name">{{ item.dish_name }}</td>
+                        <td class="item-qty">x{{ item.quantity }}</td>
+                        <td class="item-total">Rs. {{ item.line_total|floatformat:0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="divider"></div>
+
+            <div class="totals">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <span>Rs. {{ txn.sub_total|floatformat:0 }}</span>
+                </div>
+                <div class="totals-row grand">
+                    <span>TOTAL</span>
+                    <span>Rs. {{ txn.total_amount|floatformat:0 }}</span>
+                </div>
+                <div class="totals-row" style="margin-top: 8px;">
+                    <span>Paid ({{ txn.payment_method|upper }})</span>
+                    <span>Rs. {{ txn.amount_received|floatformat:0 }}</span>
+                </div>
+                <div class="totals-row">
+                    <span>Change</span>
+                    <span>Rs. {{ txn.change_returned|floatformat:0 }}</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="footer text-center">
+                <div class="font-bold">Thank You For Your Visit!</div>
+                <div style="margin-top: 4px;">Powered by CanteenERP</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions no-print">
+        <a href="/pos/" class="btn btn-pos">
+            <i data-lucide="arrow-left" style="width: 18px;"></i> New Sale
+        </a>
+        <button onclick="window.print()" class="btn btn-print">
+            <i data-lucide="printer" style="width: 18px;"></i> Print Receipt
+        </button>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    // Auto-print option could be enabled here: window.print();
+</script>
+</body>
+</html>

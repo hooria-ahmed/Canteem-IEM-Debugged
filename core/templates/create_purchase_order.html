@@ -1,0 +1,500 @@
+{% extends "base_manager.html" %}
+{% block title %}Create Purchase Order{% endblock %}
+{% block page_title %}New Procurement Order{% endblock %}
+{% block page_subtitle %}Build your purchase order — select ingredients and assign suppliers.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .procurement-layout { display: grid; grid-template-columns: 1fr 400px; gap: 32px; align-items: start; }
+    @media (max-width: 1200px) { .procurement-layout { grid-template-columns: 1fr 340px; gap: 20px; } }
+    @media (max-width: 992px) { .procurement-layout { grid-template-columns: 1fr; } .procurement-sidebar { order: -1; } }
+
+    /* Supplier banner */
+    .supplier-banner {
+        background: var(--bg-pure);
+        border: 2px solid var(--primary);
+        border-radius: 20px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .supplier-banner label {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--primary);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .supplier-banner select {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .supplier-banner select:focus { border-color: var(--primary); }
+    
+    /* Search bar */
+    .search-wrap {
+        position: relative;
+        margin-bottom: 16px;
+    }
+    .search-wrap i[data-lucide] {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        color: var(--text-4);
+    }
+    .search-wrap input {
+        width: 100%;
+        padding: 14px 14px 14px 48px;
+        border-radius: 16px;
+        border: 1.5px solid var(--border);
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+    .search-wrap input:focus { border-color: var(--primary); }
+
+    /* Material cards */
+    .material-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        background: var(--bg-pure);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        gap: 12px;
+    }
+    .material-card:hover { border-color: var(--primary); transform: translateX(3px); box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+    .material-card.selected { background: var(--primary-soft); border-color: var(--primary); }
+    .material-info { flex: 1; min-width: 0; }
+    .material-name { font-weight: 850; font-size: 14px; color: var(--text-1); }
+    .material-meta { font-size: 11.5px; color: var(--text-4); font-weight: 600; margin-top: 2px; }
+    .dish-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .dish-tag { 
+        background: rgba(16,185,129,0.08); 
+        color: var(--primary); 
+        border: 1px solid rgba(16,185,129,0.2);
+        font-size: 10px; font-weight: 800; 
+        padding: 2px 8px; 
+        border-radius: 20px;
+    }
+
+    /* Order table */
+    .order-table { width: 100%; border-collapse: collapse; }
+    .order-table th { text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-4); border-bottom: 2px solid var(--border); }
+    .order-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .qty-input, .cost-input { width: 90px; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-weight: 700; text-align: center; outline: none; }
+    .qty-input:focus, .cost-input:focus { border-color: var(--primary); }
+    
+    /* Per-row supplier select */
+    .row-supplier-select {
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1.5px solid var(--border);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 12px;
+        width: 150px;
+        outline: none;
+    }
+    .row-supplier-select:focus { border-color: var(--primary); }
+
+    .remove-btn { color: var(--danger); background: #fef2f2; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .remove-btn:hover { background: var(--danger); color: #fff; }
+
+    .empty-state { padding: 60px 32px; text-align: center; color: var(--text-4); }
+    .scroll-area { max-height: 480px; overflow-y: auto; padding-right: 4px; }
+    .scroll-area::-webkit-scrollbar { width: 6px; }
+    .scroll-area::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+
+    /* Summary sidebar */
+    .summary-card {
+        background: var(--text-1);
+        color: #fff;
+        border-radius: 24px;
+        padding: 32px;
+        position: sticky;
+        top: 32px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+    }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-weight: 600; opacity: 0.75; font-size: 14px; }
+    .summary-total { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+    
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="procurement-layout">
+
+    <!-- LEFT COLUMN -->
+    <div>
+        <!-- SUPPLIER SELECTION (Top, prominent) -->
+        <div class="supplier-banner">
+            <i data-lucide="truck" style="width:22px; height:22px; color:var(--primary); flex-shrink:0"></i>
+            <label>Default Supplier</label>
+            <select id="supplierSelect">
+                <option value="">-- Select a Supplier --</option>
+                {% for s in suppliers %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+            <span style="font-size:11.5px; color:var(--text-4); font-weight:600; white-space:nowrap">
+                Applied to all items
+            </span>
+        </div>
+
+        <!-- INGREDIENT BROWSER -->
+        <div class="card-pro" style="margin-bottom: 24px;">
+            <div class="card-head">
+                <h3><i data-lucide="search" style="color:var(--primary)"></i> Browse Ingredients</h3>
+                <span id="itemCountBadge" class="badge-pro blue">0 ITEMS</span>
+            </div>
+            <div class="card-body" style="padding-bottom: 8px;">
+                <div class="search-wrap">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="materialSearch" placeholder="Search ingredients by name...">
+                </div>
+                <div id="searchResults" class="scroll-area">
+                    {% for m in all_materials %}
+                    <div class="material-card" data-id="{{ m.id }}">
+                        <div class="material-info">
+                            <div class="material-name">{{ m.name }}</div>
+                            <div class="material-meta">
+                                Stock: {{ m.current_stock|floatformat:1 }} {{ m.units }} &bull; Rs. {{ m.cost_per_unit|floatformat:2 }}/{{ m.units }}
+                            </div>
+                            {% if m.used_in_dishes %}
+                            <div class="dish-tags">
+                                {% for dish in m.used_in_dishes %}
+                                <span class="dish-tag">{{ dish }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if m.current_stock <= m.reorder_level %}
+                        <span style="font-size:10px; font-weight:800; color:#EF4444; background:#FEE2E2; padding:3px 8px; border-radius:20px; margin-right:8px; white-space:nowrap;">LOW STOCK</span>
+                        {% endif %}
+                        <button class="btn-primary-pro" style="padding:8px 16px; font-size:12px; border-radius:10px; flex-shrink:0"
+                                onclick="addItem('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.units }}', '{{ m.cost_per_unit }}'); return false;">
+                            <i data-lucide="plus" style="width:14px"></i> Add
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ORDER ITEMS TABLE -->
+        <div class="card-pro">
+            <div class="card-head">
+                <h3><i data-lucide="shopping-basket" style="color:var(--primary)"></i> Order Items</h3>
+            </div>
+            <div id="tableWrapper" style="padding: 0 0 16px;">
+                <div id="emptyTableState" class="empty-state">
+                    <i data-lucide="shopping-cart" style="width:48px; height:48px; opacity:0.15; margin-bottom:16px"></i>
+                    <div style="font-weight:800; font-size:15px; margin-bottom:6px">No items added yet</div>
+                    <div style="font-size:13px; color:var(--text-4)">Browse ingredients above and click Add to build your order.</div>
+                </div>
+                <table class="order-table" id="poTable" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Supplier</th>
+                            <th>Qty</th>
+                            <th>Unit Cost (Rs)</th>
+                            <th>Line Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="poItemsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="card-pro" style="margin-top:24px; padding:24px;">
+            <label style="display:block; font-weight:800; font-size:12px; text-transform:uppercase; color:var(--text-3); margin-bottom:12px; letter-spacing:0.8px;">Order Notes (Optional)</label>
+            <textarea id="orderNotes" placeholder="Delivery instructions, quality specifications, urgency notes, etc..."
+                      style="width:100%; height:100px; padding:16px; border-radius:14px; border:1.5px solid var(--border); font-family:inherit; font-size:13.5px; outline:none; resize:vertical; box-sizing:border-box;"></textarea>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN: SUMMARY -->
+    <div class="procurement-sidebar">
+        <div class="summary-card">
+            <h2 style="font-size:20px; font-weight:900; margin-bottom:28px; letter-spacing:-0.02em">Order Summary</h2>
+            <div class="summary-row">
+                <span>Sub-total</span>
+                <span id="summarySubtotal">Rs. 0</span>
+            </div>
+            <div class="summary-row">
+                <span>Items</span>
+                <span id="summaryItemCount">0</span>
+            </div>
+            <div class="summary-total">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-size:11px; text-transform:uppercase; letter-spacing:1px; opacity:0.6;">Grand Total</span>
+                    <span id="summaryTotal" style="font-size:32px; font-weight:950; letter-spacing:-0.04em;">Rs. 0</span>
+                </div>
+            </div>
+            <button id="submitPO" class="btn-primary-pro" style="width:100%; justify-content:center; margin-top:36px; padding:20px; font-size:15px; background:var(--primary); border:none; color:#fff; box-shadow:0 12px 30px rgba(16,185,129,0.3); border-radius:16px;">
+                <i data-lucide="check-circle" style="width:20px"></i> Complete Purchase Order
+            </button>
+            <a href="{% url 'purchase_orders_list' %}" style="display:block; text-align:center; margin-top:16px; color:rgba(255,255,255,0.45); font-size:13px; font-weight:700; text-decoration:none;">
+                Cancel and discard
+            </a>
+        </div>
+
+        <!-- LOW STOCK ALERTS -->
+        <div class="card-pro" style="margin-top:24px; border-color:rgba(239,68,68,0.25);">
+            <div class="card-head" style="padding:16px 20px;">
+                <h3 style="font-size:13px;"><i data-lucide="zap" style="color:#EF4444"></i> Low Stock Alerts</h3>
+            </div>
+            <div style="padding:8px 16px 16px;">
+                {% for item in low_stock %}
+                <div class="material-card low-stock-item" style="padding:10px 14px; margin-bottom:8px; border-color:rgba(239,68,68,0.2);">
+                    <div>
+                        <div style="font-size:13px; font-weight:800; color:var(--text-1)">{{ item.name }}</div>
+                        <div style="color:#EF4444; font-weight:700; font-size:11.5px">{{ item.current_stock|floatformat:1 }} {{ item.units }} remaining</div>
+                    </div>
+                    <button class="btn-primary-pro" style="padding:6px 12px; font-size:11px; border-radius:8px; flex-shrink:0;"
+                            onclick="addItem('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.units }}', '{{ item.cost_per_unit }}'); return false;">
+                        <i data-lucide="plus" style="width:12px"></i>
+                    </button>
+                </div>
+                {% empty %}
+                <div style="text-align:center; padding:24px; color:var(--text-4); font-size:13px; font-weight:600;">
+                    <i data-lucide="check-circle-2" style="width:28px; height:28px; color:#10B981; margin-bottom:8px; display:block; margin-left:auto; margin-right:auto;"></i>
+                    All stock levels healthy
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let orderItems = [];
+    // notyf is already declared globally in base_manager.html
+
+    // Build supplier options HTML once
+    const supplierOptions = `<option value="">-- Supplier --</option>{% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}`;
+
+    $(document).ready(function() {
+        lucide.createIcons();
+
+        // Auto-select supplier from URL
+        const urlSupplier = new URLSearchParams(window.location.search).get('supplier');
+        if (urlSupplier) $('#supplierSelect').val(urlSupplier);
+
+        // Search filtering
+        let searchTimeout;
+        $('#materialSearch').on('input', function() {
+            const q = this.value.toLowerCase();
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.querySelectorAll('.material-card[data-id]').forEach(card => {
+                    const name = (card.querySelector('.material-name') || {}).textContent || '';
+                    card.style.display = name.toLowerCase().includes(q) ? 'flex' : 'none';
+                });
+            }, 100);
+        });
+
+        $('#submitPO').on('click', submitOrder);
+    });
+
+    function addItem(id, name, unit, cost) {
+        // Normalise id to string for reliable comparison
+        id = String(id);
+        if (orderItems.find(i => i.id === id)) {
+            notyf.open({ type: 'warning', message: name + ' is already in the order' });
+            return;
+        }
+        const defaultSupplierId = $('#supplierSelect').val();
+        const item = { id, name, unit, qty: 10, cost: parseFloat(cost) || 0, supplierId: defaultSupplierId };
+        orderItems.push(item);
+        renderTable();
+        lucide.createIcons();
+        notyf.success('Added: ' + name);
+    }
+
+    function removeItem(id) {
+        orderItems = orderItems.filter(i => i.id !== id);
+        renderTable();
+    }
+
+    function removeItem(id) {
+        id = String(id);
+        orderItems = orderItems.filter(i => i.id !== id);
+        renderTable();
+    }
+
+    function updateQty(id, val) {
+        id = String(id);
+        const item = orderItems.find(i => i.id === id);
+        if (item) { item.qty = parseFloat(val) || 0; updateSummary(); }
+    }
+
+    function updateCost(id, val) {
+        id = String(id);
+        const item = orderItems.find(i => i.id === id);
+        if (item) { item.cost = parseFloat(val) || 0; updateSummary(); }
+    }
+
+    function updateItemSupplier(id, val) {
+        id = String(id);
+        const item = orderItems.find(i => i.id === id);
+        if (item) item.supplierId = val;
+    }
+
+    function updateSummary() {
+        const total = orderItems.reduce((s, i) => s + i.qty * i.cost, 0);
+        $('#summarySubtotal').text('Rs. ' + total.toLocaleString());
+        $('#summaryTotal').text('Rs. ' + total.toLocaleString());
+        $('#summaryItemCount').text(orderItems.length);
+        $('#itemCountBadge').text(orderItems.length + ' ITEMS').toggleClass('blue', orderItems.length > 0);
+    }
+
+    function renderTable() {
+        const body = $('#poItemsBody');
+        body.empty();
+
+        if (orderItems.length === 0) {
+            $('#emptyTableState').show();
+            $('#poTable').hide();
+        } else {
+            $('#emptyTableState').hide();
+            $('#poTable').show();
+
+            orderItems.forEach(item => {
+                const lineTotal = item.qty * item.cost;
+                // Build supplier select with current value pre-selected
+                const supplierOpts = `<option value="">-- Supplier --</option>{% for s in suppliers %}<option value="{{ s.id }}" ${item.supplierId == '{{ s.id }}' ? 'selected' : ''}>{{ s.name }}</option>{% endfor %}`;
+                
+                body.append(`
+                    <tr>
+                        <td>
+                            <div style="font-weight:850; font-size:14px; color:var(--text-1)">${item.name}</div>
+                            <div style="font-size:11px; color:var(--text-4); font-weight:600">${item.unit}</div>
+                        </td>
+                        <td>
+                            <select class="row-supplier-select" onchange="updateItemSupplier(${item.id}, this.value)">
+                                <option value="">-- Default --</option>
+                                {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" class="qty-input" value="${item.qty}" step="0.1" min="0" onchange="updateQty(${item.id}, this.value)">
+                        </td>
+                        <td>
+                            <input type="number" class="cost-input" value="${item.cost.toFixed(2)}" step="0.01" min="0" onchange="updateCost(${item.id}, this.value)">
+                        </td>
+                        <td style="font-weight:900; color:var(--text-1)">Rs. ${lineTotal.toLocaleString()}</td>
+                        <td>
+                            <button class="remove-btn" onclick="removeItem(${item.id})">
+                                <i data-lucide="trash-2" style="width:14px"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            // Set supplier value for each row after rendering
+            orderItems.forEach(item => {
+                // Find the select in the last rendered row matching this item
+            });
+        }
+        updateSummary();
+        lucide.createIcons();
+    }
+
+    async function submitOrder() {
+        const defaultSupplierId = $('#supplierSelect').val();
+        const notes = $('#orderNotes').val().trim();
+
+        if (orderItems.length === 0) {
+            notyf.error('Please add at least one ingredient');
+            return;
+        }
+
+        // Validate: every item must have a supplier (its own or global default)
+        const unassigned = orderItems.filter(i => !i.supplierId && !defaultSupplierId);
+        if (unassigned.length > 0) {
+            notyf.error(`No supplier assigned for: ${unassigned.map(i=>i.name).join(', ')}`);
+            return;
+        }
+
+        const btn = $('#submitPO');
+        btn.prop('disabled', true).html('<i data-lucide="loader" class="spin" style="width:18px"></i> Creating orders...');
+        lucide.createIcons();
+
+        const formData = new FormData();
+        formData.append('supplier_id', defaultSupplierId);
+        formData.append('notes', notes);
+        formData.append('items_json', JSON.stringify(orderItems.map(i => ({
+            id:          i.id,
+            name:        i.name,
+            qty:         i.qty,
+            cost:        i.cost,
+            supplier_id: i.supplierId || defaultSupplierId
+        }))));
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const response = await fetch('{% url "create_purchase_order" %}', { method: 'POST', body: formData });
+            const result   = await response.json();
+
+            if (result.success) {
+                const poCount = result.po_count || 1;
+                // Show a rich success summary
+                let summaryHtml = `<div style="text-align:left; margin-top:12px;">`;
+                (result.orders || []).forEach(o => {
+                    summaryHtml += `<div style="padding:8px 0; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;">
+                        <span style="font-weight:700">${o.supplier}</span>
+                        <span style="color:#10b981; font-weight:800">Rs. ${o.total.toLocaleString()}</span>
+                    </div>`;
+                });
+                summaryHtml += `</div>`;
+
+                Swal.fire({
+                    icon: 'success',
+                    title: `${poCount} Purchase Order${poCount > 1 ? 's' : ''} Created!`,
+                    html: `<p style="color:#64748b">Orders created per supplier:</p>${summaryHtml}`,
+                    confirmButtonColor: '#10b981',
+                    confirmButtonText: 'View Orders'
+                }).then(() => {
+                    window.location.href = '{% url "purchase_orders_list" %}';
+                });
+            } else {
+                throw new Error(result.error || 'Unknown error');
+            }
+        } catch (err) {
+            notyf.error('Error: ' + err.message);
+            btn.prop('disabled', false).html('<i data-lucide="check-circle" style="width:18px"></i> Complete Purchase Order');
+            lucide.createIcons();
+        }
+    }
+</script>
+{% endblock %}

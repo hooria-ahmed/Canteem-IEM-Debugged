@@ -1,0 +1,136 @@
+{% extends "base_manager.html" %}
+{% block title %}PO Detail - {{ po.po_number }}{% endblock %}
+{% block page_title %}Order Details{% endblock %}
+{% block page_subtitle %}Purchase Order #{{ po.po_number }} - Review and manage fulfillment.{% endblock %}
+
+{% block extra_head %}
+<style>
+    .po-header-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+    .po-stat { background: var(--bg-pure); padding: 24px; border-radius: 20px; border: 1.5px solid var(--border); }
+    .po-stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-4); letter-spacing: 1px; margin-bottom: 8px; }
+    .po-stat-value { font-size: 18px; font-weight: 850; color: var(--text-1); }
+
+    .line-items-card { background: var(--bg-pure); border-radius: 24px; border: 1.5px solid var(--border); overflow: hidden; }
+    .line-table { width: 100%; border-collapse: collapse; }
+    .line-table th { text-align: left; padding: 16px 24px; background: var(--surface-2); font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-3); }
+    .line-table td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .line-table tr:last-child td { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="po-header-grid" data-aos="fade-down">
+    <div class="po-stat">
+        <div class="po-stat-label">Supplier</div>
+        <div class="po-stat-value">{{ po.supplier.name }}</div>
+    </div>
+    <div class="po-stat">
+        <div class="po-stat-label">Order Date</div>
+        <div class="po-stat-value">{{ po.order_date|date:"M d, Y" }}</div>
+    </div>
+    <div class="po-stat">
+        <div class="po-stat-label">Status</div>
+        <div>
+            <span class="badge-pro 
+                {% if po.status == 'draft' %}gray
+                {% elif po.status == 'ordered' %}blue
+                {% elif po.status == 'received' %}green
+                {% else %}orange{% endif %}" style="font-size: 12px; padding: 6px 14px;">
+                {{ po.status|upper }}
+            </span>
+        </div>
+    </div>
+    <div class="po-stat" style="border-color: var(--primary);">
+        <div class="po-stat-label" style="color: var(--primary);">Total Value</div>
+        <div class="po-stat-value" style="color: var(--primary); font-size: 24px;">Rs. {{ po.total_amount|floatformat:0 }}</div>
+    </div>
+</div>
+
+<div class="line-items-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="card-head" style="padding: 24px; border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: 16px;"><i data-lucide="shopping-bag" style="color: var(--primary);"></i> Order Items</h3>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn-outline-pro" onclick="window.print()">
+                <i data-lucide="printer"></i> Print PO
+            </button>
+            {% if po.status == 'ordered' %}
+            <button id="receiveBtn" class="btn-primary-pro" style="background: var(--primary);">
+                <i data-lucide="check-circle"></i> Mark as Received
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <table class="line-table">
+        <thead>
+            <tr>
+                <th>Raw Material</th>
+                <th>Quantity Ordered</th>
+                <th>Unit Cost</th>
+                <th>Total Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td style="font-weight: 750; color: var(--text-1);">{{ item.raw_material.name }}</td>
+                <td>{{ item.quantity_ordered|floatformat:1 }} {{ item.unit }}</td>
+                <td>Rs. {{ item.unit_cost|floatformat:2 }}</td>
+                <td style="font-weight: 850; color: var(--text-1);">Rs. {{ item.line_total|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if po.notes %}
+    <div style="padding: 24px; background: #f8fafc; border-top: 1px solid var(--border);">
+        <div class="po-stat-label">Notes</div>
+        <div style="font-size: 14px; color: var(--text-2); font-style: italic;">"{{ po.notes }}"</div>
+    </div>
+    {% endif %}
+</div>
+
+<div style="margin-top: 32px; display: flex; justify-content: space-between; align-items: center; color: var(--text-4); font-size: 12px; font-weight: 600;">
+    <div>Created by {{ po.ordered_by.full_name }} at {{ po.created_at|date:"M d, Y H:i" }}</div>
+    <a href="{% url 'purchase_orders_list' %}" class="nav-link" style="color: var(--primary);"><i data-lucide="arrow-left"></i> Back to Register</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        lucide.createIcons();
+        const notyf = new Notyf({ position: { x: 'right', y: 'top' } });
+
+        $('#receiveBtn').on('click', async function() {
+            if (!confirm('Mark this order as received? This will increase material stock levels.')) return;
+
+            const btn = $(this);
+            btn.prop('disabled', true).html('<i data-lucide="loader" class="spin" style="width:18px"></i> Processing...');
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('{% url "receive_purchase_order" po.id %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    notyf.success('Stock updated and order marked as received!');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                notyf.error('Error: ' + error.message);
+                btn.prop('disabled', false).html('<i data-lucide="check-circle"></i> Mark as Received');
+                lucide.createIcons();
+            }
+        });
+    });
+</script>
+<style>
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "base_manager.html" %}
+{% block title %}Add Dish{% endblock %}
+{% block nav_dashboard %}{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-wrap { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+.form-card { 
+    background: var(--bg-pure); 
+    border: 1.5px solid var(--border); 
+    border-radius: 28px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+.form-card-header {
+  padding: 32px;
+  background: linear-gradient(135deg, #065f46, #10B981);
+  display: flex; align-items: center; gap: 20px;
+  position: relative;
+}
+.form-card-header::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4v-4H4v4H0v2h4v4h2v-4h4v-2H6zm30 0v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.4;
+}
+.form-card-header .hdr-icon {
+  width: 60px; height: 60px; background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 28px;
+  z-index: 1;
+}
+.form-card-header .hdr-text { z-index: 1; }
+.form-card-header h2 { color: #fff; font-size: 22px; font-weight: 900; margin-bottom: 4px; letter-spacing: -0.02em; }
+.form-card-header p  { color: rgba(255,255,255,0.9); font-size: 13px; margin: 0; font-weight: 600; }
+
+.form-card-body { padding: 32px; }
+.field-pro label { font-size: 11.5px; font-weight: 850; text-transform: uppercase; color: var(--text-3); letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.field-pro input, .field-pro select { 
+    padding: 12px 18px; border-radius: 16px; border: 1.5px solid var(--border); background: #f8fafc; 
+    font-size: 14px; font-weight: 700; color: var(--text-1); transition: all 0.3s;
+}
+.field-pro input:focus, .field-pro select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.1); }
+
+/* Meal type selector */
+.meal-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.meal-pill {
+  padding: 10px 20px; border-radius: 14px; border: 1.5px solid var(--border);
+  background: #f8fafc; color: var(--text-2); font-size: 13px; font-weight: 750;
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 8px;
+}
+.meal-pill:hover { transform: translateY(-2px); border-color: var(--primary); color: var(--primary); background: #fff; }
+.meal-pill.selected { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.25); }
+
+/* Preview card */
+.preview-card { 
+    background: linear-gradient(135deg, #0f172a, #1e293b); 
+    border-radius: 24px; 
+    padding: 32px; 
+    margin-bottom: 20px; 
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+.preview-card::before {
+    content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+}
+.preview-title { font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+.preview-dish-name { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 8px; min-height: 36px; letter-spacing: -0.02em; position: relative; }
+.preview-price { font-size: 38px; font-weight: 950; color: #10B981; letter-spacing: -0.04em; position: relative; }
+.preview-meta { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; position: relative; }
+
+@media(max-width:1100px){ .page-wrap{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" data-aos="fade-down">
+  <h1><i class="bi bi-plus-circle-fill" style="color:var(--primary)"></i> Add New Dish</h1>
+  <p>Create a new menu item to be served at your canteen</p>
+</div>
+
+{% if message %}
+<div class="alert-pro {% if msg_type == 'success' %}success{% else %}error{% endif %} mb-4" data-aos="fade-down">
+  <i class="bi bi-{% if msg_type == 'success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>
+  {{ message }}
+</div>
+{% endif %}
+
+<div class="page-wrap">
+  <!-- FORM CARD -->
+  <div class="form-card" data-aos="fade-up">
+    <div class="form-card-header">
+      <div class="hdr-icon">🍽️</div>
+      <div>
+        <h2>Dish Information</h2>
+        <p>Fill in all required fields to add this dish to the menu</p>
+      </div>
+    </div>
+    <div class="form-card-body">
+      <form method="POST" class="form-pro" id="dishForm">
+        {% csrf_token %}
+
+        <div class="field-pro">
+          <label><i class="bi bi-card-text"></i> Dish Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" id="dishName" placeholder="e.g. Chicken Biryani, Dal Chawal..." required autocomplete="off"
+                 oninput="document.getElementById('previewName').textContent = this.value || 'Dish Name'">
+          <div class="hint"><i class="bi bi-info-circle"></i> This appears on POS terminal and kitchen display</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="field-pro">
+            <label><i class="bi bi-currency-rupee"></i> Selling Price (Rs.) <span style="color:var(--danger)">*</span></label>
+            <input type="number" name="price" id="dishPrice" step="0.01" min="0" placeholder="0.00" required
+                   oninput="document.getElementById('previewPrice').textContent = 'Rs. ' + (parseFloat(this.value)||0).toLocaleString()">
+          </div>
+          <div class="field-pro">
+            <label><i class="bi bi-grid-3x3-gap"></i> Category <span style="font-weight:400;color:var(--text-4);text-transform:none;font-size:11px">(Optional)</span></label>
+            <select name="category" id="dishCat" class="select2">
+              <option value="">— No Category —</option>
+              {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="field-pro">
+          <label><i class="bi bi-clock"></i> Meal Type</label>
+          <input type="hidden" name="meal_type" id="mealTypeInput" value="any">
+          <div class="meal-pills">
+            <div class="meal-pill selected" onclick="setMeal('any',this)">🕐 Any Time</div>
+            <div class="meal-pill" onclick="setMeal('breakfast',this)">🌅 Breakfast</div>
+            <div class="meal-pill" onclick="setMeal('lunch',this)">☀️ Lunch</div>
+            <div class="meal-pill" onclick="setMeal('dinner',this)">🌙 Dinner</div>
+            <div class="meal-pill" onclick="setMeal('snack',this)">🍪 Snack</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
+          <a href="/manager/" class="btn-outline-pro" style="flex:1;justify-content:center">
+            <i class="bi bi-arrow-left"></i> Cancel
+          </a>
+          <button type="submit" class="btn-primary-pro" style="flex:2;justify-content:center">
+            <i class="bi bi-plus-circle-fill"></i> Add Dish
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div data-aos="fade-left" data-aos-delay="100">
+    <!-- Live Preview -->
+    <div class="preview-card">
+      <div class="preview-title"><i class="bi bi-eye"></i> Live Preview</div>
+      <div class="preview-dish-name" id="previewName">Dish Name</div>
+      <div class="preview-price" id="previewPrice">Rs. 0</div>
+      <div class="preview-meta" id="previewMeal">🕐 Any Time</div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card-pro">
+      <div class="card-head">
+        <h3><i class="bi bi-lightbulb-fill" style="color:var(--warning)"></i> Best Practices</h3>
+      </div>
+      <div class="card-body" style="padding:16px 20px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:30px;height:30px;background:rgba(29,158,117,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">✅</div>
+            <div><div style="font-size:12px;font-weight:600;color:var(--text-2)">Add Ingredients</div><div style="font-size:11px;color:var(--text-4);margin-top:2px">After creating, link ingredients via the Costing Matrix for accurate profit tracking.</div></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:30px;height:30px;background:rgba(249,115,22,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">💰</div>
+            <div><div style="font-size:12px;font-weight:600;color:var(--text-2)">Price Correctly</div><div style="font-size:11px;color:var(--text-4);margin-top:2px">Aim for a 40–60% profit margin. Check the Recipe Costing page for analysis.</div></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:30px;height:30px;background:rgba(139,92,246,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">🏷️</div>
+            <div><div style="font-size:12px;font-weight:600;color:var(--text-2)">Use Categories</div><div style="font-size:11px;color:var(--text-4);margin-top:2px">Categories help filter on the POS and power the Analytics category breakdown chart.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function(){
+  if($.fn.select2) {
+    $('#dishCat').select2({ width:'100%' });
+    $('#dishCat').on('change', function(){
+      document.getElementById('previewMeal').dataset.cat = $(this).find('option:selected').text();
+    });
+  }
+});
+
+const mealEmojis = { any:'🕐 Any Time', breakfast:'🌅 Breakfast', lunch:'☀️ Lunch', dinner:'🌙 Dinner', snack:'🍪 Snack' };
+function setMeal(val, el) {
+  document.querySelectorAll('.meal-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('mealTypeInput').value = val;
+  document.getElementById('previewMeal').textContent = mealEmojis[val];
+}
+</script>
+{% endblock %}

@@ -1,0 +1,563 @@
+{% extends "base_manager.html" %}
+{% load humanize %}
+{% block title %}Finance Dashboard{% endblock %}
+{% block page_title %}Financial Intelligence{% endblock %}
+{% block page_subtitle %}In-depth Profit & Loss analysis and revenue trends{% endblock %}
+{% block nav_finance %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:32px}
+.filter-bar {
+    background: var(--bg-pure);
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+.filter-bar label {
+    font-size: 11.5px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-2col{display:grid;grid-template-columns:1fr 420px;gap:28px;margin-bottom:28px}
+
+.kpi-pro {
+    background: var(--bg-pure);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 28px 24px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0;
+}
+.kpi-pro:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.07);
+    border-color: var(--primary);
+}
+/* Left accent bar replacing top bar */
+.kpi-accent {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 5px;
+    border-radius: 20px 0 0 20px;
+    opacity: 1;
+}
+.kpi-icon-wrap {
+    margin-bottom: 18px;
+    flex-shrink: 0;
+}
+.kpi-lbl {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-4);
+    letter-spacing: 1.4px;
+    margin-bottom: 10px;
+    margin-top: 0;
+}
+.kpi-val {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--text-1);
+    letter-spacing: -0.04em;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+.kpi-sub {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-start;
+}
+
+/* Transaction List Style */
+.txn-item { display: flex; align-items: center; gap: 16px; padding: 18px; border-bottom: 1px solid var(--border); transition: all 0.3s ease; border-radius: 20px; margin-bottom: 4px; }
+.txn-item:hover { background: #f8fafc; transform: translateX(8px); border-bottom-color: transparent; }
+.txn-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+.txn-info { flex: 1; }
+.txn-name { font-weight: 850; font-size: 14.5px; color:var(--text-1); letter-spacing: -0.01em; }
+.txn-meta { font-size: 12px; color: var(--text-4); margin-top: 4px; font-weight: 600; }
+.txn-amt { font-weight: 900; font-size: 15px; }
+
+.pnl-row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px dashed var(--border); }
+.pnl-row:last-of-type { border-bottom: none; border-top: 2px solid var(--border); margin-top: 12px; padding-top: 24px; }
+.pnl-lbl { font-size: 14.5px; color: var(--text-3); font-weight: 700; }
+.pnl-val { font-size: 15.5px; font-weight: 850; color: var(--text-1); }
+.pnl-val.net { font-size: 28px; color: var(--primary); letter-spacing: -0.05em; font-weight: 950; }
+
+.export-btn {
+    width: 100%; padding: 16px; border-radius: 18px; border: 1.5px solid var(--border);
+    background: var(--bg-pure); color: var(--text-2); font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all 0.2s; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+.export-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+.export-btn.active { background: #0f172a; color: #fff; border-color: #0f172a; box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15); }
+
+.qbtn {
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 12px; 
+    font-size: 12.5px; 
+    font-weight: 750; 
+    color: var(--text-2); 
+    background: transparent; 
+    cursor: pointer; 
+    transition: all 0.2s;
+}
+.qbtn.active { background: var(--bg-pure); color: var(--text-1); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+.category-progress-item {
+    transition: all 0.25s ease;
+}
+.category-progress-item:hover {
+    background: rgba(16, 185, 129, 0.05) !important;
+    border-color: rgba(16, 185, 129, 0.15) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.03);
+}
+/* Net profit contextual colours */
+.pnl-positive { color: #10B981 !important; }
+.pnl-negative { color: #EF4444 !important; }
+.margin-box-positive { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.18); }
+.margin-box-negative { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.18); }
+.margin-lbl-positive { color: #059669; }
+.margin-lbl-negative { color: #DC2626; }
+
+/* P&L snapshot rows */
+.pnl-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 14px;
+    border-radius: 12px;
+    margin-bottom: 4px;
+    transition: background 0.15s;
+}
+.pnl-row:hover { background: var(--surface-2, #f8fafc); }
+.pnl-lbl {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--text-3); font-weight: 600;
+}
+.pnl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pnl-val { font-size: 13.5px; font-weight: 800; color: var(--text-1); }
+.pnl-val.net { font-size: 22px; letter-spacing: -0.04em; font-weight: 900; }
+.pnl-divider { height: 1px; background: var(--border); margin: 8px 0; }
+.pnl-net-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-radius: 14px; margin-top: 4px;
+}
+.pnl-net-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 4px;
+}
+.pnl-net-label--profit { color: #059669; }
+.pnl-net-label--loss   { color: #DC2626; }
+
+@media(max-width:1400px){ .chart-2col { grid-template-columns: 1fr; } .fin-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Print Styles */
+@media print {
+    body { background: white !important; }
+    aside, .filter-bar, .export-btn, .page-hero { display: none !important; }
+    main { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
+    .card-pro, .kpi-pro { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+    .print-header h1 { font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+    .print-header p { font-size: 14px; margin: 5px 0 0; color: #555; }
+    .fin-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 10px; }
+    .chart-2col { grid-template-columns: 1fr !important; }
+    .hide-print { display: none !important; }
+}
+.print-header { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="print-header">
+    <h1>Events Up</h1>
+    <p style="font-weight: 800; font-size: 18px; color: #111;">Comprehensive Profit & Loss Report</p>
+    <p id="printDateRange" style="font-weight: 600;"></p>
+    <p id="printTimestamp" style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 10px;"></p>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" data-aos="fade-down">
+  <label><i data-lucide="calendar-range" style="width:18px; color:var(--primary)"></i> Analysis Period</label>
+  <div style="display:flex; align-items:center; gap:12px; background: #f8fafc; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);">
+    <input type="text" id="sd" class="flatpickr-date" value="{{ start_date }}" style="border:none; background:transparent; font-size:14px; width:110px; outline:none; font-weight:800; color:var(--text-1)">
+    <i data-lucide="arrow-right" style="width:14px; color:var(--text-4)"></i>
+    <input type="text" id="ed" class="flatpickr-date" value="{{ end_date }}" style="border:none; background:transparent; font-size:14px; width:110px; outline:none; font-weight:800; color:var(--text-1)">
+  </div>
+  <button class="btn-primary-pro" onclick="applyDates()" style="padding:12px 28px; font-size:14px; border-radius:16px; background: var(--primary); color: white; font-weight: 800; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.15)">
+    <i data-lucide="refresh-cw" style="width:18px"></i> Update View
+  </button>
+  
+  <div class="quick-range" id="quickRange" style="margin-left:auto; display:flex; gap:6px; background:#f1f5f9; padding:6px; border-radius:18px">
+    <button class="qbtn" data-days="1" onclick="setRange(1,this)">Today</button>
+    <button class="qbtn" data-days="7" onclick="setRange(7,this)">7D</button>
+    <button class="qbtn" data-days="30" onclick="setRange(30,this)">30D</button>
+    <button class="qbtn" data-days="90" onclick="setRange(90,this)">90D</button>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="fin-grid">
+
+  <!-- Revenue -->
+  <div class="kpi-pro" data-aos="fade-up" data-aos-delay="0">
+    <div class="kpi-accent" style="background:#10B981"></div>
+    <div class="kpi-icon-wrap" style="background:#DCFCE7; color:#10B981; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;">
+      <i data-lucide="banknote" style="width:22px; height:22px"></i>
+    </div>
+    <div class="kpi-lbl">Total Revenue</div>
+    <div class="kpi-val" id="kpi-revenue">Rs. {{ total_revenue|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">
+      <i data-lucide="receipt" style="width:13px"></i>
+      {{ total_txn_count|intcomma }} orders
+    </div>
+  </div>
+
+  <!-- COGS -->
+  <div class="kpi-pro" data-aos="fade-up" data-aos-delay="80">
+    <div class="kpi-accent" style="background:#F59E0B"></div>
+    <div class="kpi-icon-wrap" style="background:#FFFBEB; color:#F59E0B; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;">
+      <i data-lucide="package" style="width:22px; height:22px"></i>
+    </div>
+    <div class="kpi-lbl">Cost of Goods (COGS)</div>
+    <div class="kpi-val" id="kpi-cogs">Rs. {{ total_cogs|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">
+      <i data-lucide="pie-chart" style="width:13px"></i>
+      {{ gross_margin|floatformat:1 }}% gross margin
+    </div>
+  </div>
+
+  <!-- Net Profit / Loss -->
+  <div class="kpi-pro" data-aos="fade-up" data-aos-delay="160">
+    {% if net_profit >= 0 %}
+    <div class="kpi-accent" style="background:#10B981"></div>
+    <div class="kpi-icon-wrap" style="background:#DCFCE7; color:#10B981; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;">
+      <i data-lucide="trending-up" style="width:22px; height:22px"></i>
+    </div>
+    <div class="kpi-lbl">Net Profit</div>
+    <div class="kpi-val" style="color:#10B981">Rs. {{ net_profit|floatformat:0|intcomma }}</div>
+    <div class="kpi-sub">
+      <i data-lucide="check-circle" style="width:13px; color:#10B981"></i>
+      {{ net_margin|floatformat:1 }}% net margin
+    </div>
+    {% else %}
+    <div class="kpi-accent" style="background:#EF4444"></div>
+    <div class="kpi-icon-wrap" style="background:#FEE2E2; color:#EF4444; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;">
+      <i data-lucide="trending-down" style="width:22px; height:22px"></i>
+    </div>
+    <div class="kpi-lbl">Net Loss</div>
+    <div class="kpi-val" style="color:#EF4444">- Rs. {{ net_profit|floatformat:0|intcomma|cut:"-" }}</div>
+    <div class="kpi-sub">
+      <i data-lucide="alert-circle" style="width:13px; color:#EF4444"></i>
+      {{ net_margin|floatformat:1 }}% margin
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="chart-2col">
+  <div class="card-pro hide-print" data-aos="fade-up">
+    <div class="card-head">
+      <h3><i data-lucide="activity" style="color:var(--primary)"></i> Revenue & Profit Dynamics</h3>
+      <div style="display:flex; gap:16px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px">
+        <span style="display:flex; align-items:center; gap:6px"><i class="bi bi-circle-fill" style="color:#10B981; font-size:6px"></i> Revenue</span>
+        <span style="display:flex; align-items:center; gap:6px"><i class="bi bi-circle-fill" style="color:#3B82F6; font-size:6px"></i> Profit</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="trendChart" style="min-height:380px"></div>
+      
+      <div style="margin-top:40px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+          <h3 style="font-size:15px; font-weight:850; color:var(--text-1)">Recent Expenditures</h3>
+          <a href="/manager/add-expense/" class="btn-primary-pro hide-print" style="font-size:12px; height:34px; padding:0 16px; background:var(--primary); color:white; border-radius:12px; display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(16,185,129,0.2)">
+            <i data-lucide="plus-circle" style="width:14px"></i> Add Record
+          </a>
+        </div>
+        <div class="txn-list" data-auto-animate>
+          {% for ex in recent_expenses %}
+          <div class="txn-item">
+            <div class="txn-icon" style="background:var(--surface-2); color:var(--text-3)">
+              <i data-lucide="receipt"></i>
+            </div>
+            <div class="txn-info">
+              <div class="txn-name">{{ ex.title|default:"Expense" }}</div>
+              <div class="txn-meta">{{ ex.expense_date }} &bull; {{ ex.recorded_by.full_name|default:"Manager" }}</div>
+            </div>
+            <div class="txn-amt" style="color:var(--text-1)">- Rs. {{ ex.amount|floatformat:0|intcomma }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:24px">
+    <div class="card-pro" data-aos="fade-left">
+      <div class="card-head">
+        <h3><i data-lucide="bar-chart-3" style="color:var(--accent)"></i> Performance Snapshot</h3>
+      </div>
+      <div class="card-body" style="padding: 20px 24px;">
+
+        <!-- Revenue row -->
+        <div class="pnl-row">
+          <span class="pnl-lbl">
+            <span class="pnl-dot" style="background:#10B981"></span>
+            Gross Revenue
+          </span>
+          <span class="pnl-val" style="color:#10B981">Rs. {{ total_revenue|floatformat:0|intcomma }}</span>
+        </div>
+
+        <!-- COGS row -->
+        <div class="pnl-row">
+          <span class="pnl-lbl">
+            <span class="pnl-dot" style="background:#F59E0B"></span>
+            Inventory Cost (COGS)
+          </span>
+          <span class="pnl-val" style="color:#64748B">− Rs. {{ total_cogs|floatformat:0|intcomma }}</span>
+        </div>
+
+        <!-- Gross Profit -->
+        <div class="pnl-row" style="background:rgba(16,185,129,0.05); border-radius:10px;">
+          <span class="pnl-lbl" style="font-weight:700; color:var(--text-2)">
+            <span class="pnl-dot" style="background:#6366F1"></span>
+            Gross Profit
+          </span>
+          <span class="pnl-val" style="color:#6366F1">Rs. {{ gross_profit|floatformat:0|intcomma }}</span>
+        </div>
+
+        <!-- Expenses -->
+        <div class="pnl-row">
+          <span class="pnl-lbl">
+            <span class="pnl-dot" style="background:#EF4444"></span>
+            Operating Expenses
+          </span>
+          <span class="pnl-val" style="color:#64748B">− Rs. {{ total_expenses|floatformat:0|intcomma }}</span>
+        </div>
+
+        <div class="pnl-divider"></div>
+
+        <!-- Net result -->
+        <div class="pnl-net-row {% if net_profit >= 0 %}margin-box-positive{% else %}margin-box-negative{% endif %}">
+          <div>
+            <div class="pnl-net-label {% if net_profit >= 0 %}pnl-net-label--profit{% else %}pnl-net-label--loss{% endif %}">
+              {% if net_profit >= 0 %}Net Profit{% else %}Net Loss{% endif %}
+            </div>
+            <div style="font-size:12px; color:var(--text-4); font-weight:600;">
+              {{ net_margin|floatformat:1 }}% net margin
+            </div>
+          </div>
+          <span class="pnl-val net {% if net_profit >= 0 %}pnl-positive{% else %}pnl-negative{% endif %}">
+            {% if net_profit < 0 %}&#8722; Rs. {{ net_profit|floatformat:0|intcomma|cut:"-" }}{% else %}Rs. {{ net_profit|floatformat:0|intcomma }}{% endif %}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card-pro" data-aos="fade-left" data-aos-delay="100">
+      <div class="card-head" style="padding: 24px 28px; border-bottom: 1.5px solid var(--border)">
+        <h3 style="margin:0; font-size:18px; font-weight:800; display:flex; align-items:center; gap:10px">
+          <i data-lucide="tag" style="color:var(--primary); width:20px; height:20px"></i> 
+          Revenue by Category
+        </h3>
+      </div>
+      <div class="card-body" style="padding: 28px; display:flex; flex-direction:column; gap:16px">
+        {% for cat in sales_by_category %}
+        <div class="category-progress-item" style="padding: 16px 20px; background: rgba(255,255,255,0.02); border: 1.5px solid var(--border); border-radius: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+            <span style="font-size:14.5px; font-weight:800; color:var(--text-1)">{{ cat.name }}</span>
+            <div style="text-align:right">
+              <span style="font-size:15px; font-weight:900; color:var(--primary)">Rs. {{ cat.amount|floatformat:0|intcomma }}</span>
+              <span style="display:block; font-size:11px; font-weight:600; color:var(--text-3); margin-top:2px">{{ cat.percent|floatformat:1 }}% of total</span>
+            </div>
+          </div>
+          <div style="height:10px; background: rgba(255,255,255,0.06); border-radius:10px; overflow:hidden; border: 1px solid rgba(255,255,255,0.03)">
+            <div class="finance-cat-bar" data-percent="{{ cat.percent|default:0 }}" style="height:100%; background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius:10px; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1)"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card-pro hide-print" data-aos="fade-left" data-aos-delay="200">
+      <div class="card-head"><h3><i data-lucide="download-cloud" style="color:#8B5CF6"></i> Export Reports</h3></div>
+      <div class="card-body" style="display:flex; flex-direction:column; gap:14px; padding:20px;">
+
+        <a href="?export=print&start_date={{ start_date }}&end_date={{ end_date }}"
+           target="_blank"
+           style="text-decoration:none; background:linear-gradient(135deg,#1e3a8a,#2563eb);
+                  color:#fff; border-radius:16px; padding:18px 20px;
+                  display:flex; align-items:center; gap:14px;
+                  box-shadow: 0 8px 24px rgba(37,99,235,0.22);
+                  transition:all 0.2s ease;"
+           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 32px rgba(37,99,235,0.32)'"
+           onmouseout="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(37,99,235,0.22)'">
+          <div style="width:40px;height:40px;background:rgba(255,255,255,0.15);border-radius:10px;
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="printer" style="width:19px;height:19px;"></i>
+          </div>
+          <div>
+            <div style="font-weight:800; font-size:14px; letter-spacing:-0.01em;">Print P&amp;L Report</div>
+            <div style="font-size:11px; opacity:0.7; margin-top:3px;">Opens preview → print dialog</div>
+          </div>
+          <i data-lucide="external-link" style="width:15px;margin-left:auto;opacity:0.7;"></i>
+        </a>
+
+        <a href="/audit-logs/?export=csv"
+           style="text-decoration:none;
+                  background: var(--surface-2, #f1f5f9);
+                  color: var(--text-2, #334155);
+                  border-radius:14px; padding:14px 18px;
+                  display:flex; align-items:center; gap:12px;
+                  transition:all 0.2s ease;"
+           onmouseover="this.style.background='#ecfdf5';this.style.color='#065f46'"
+           onmouseout="this.style.background='';this.style.color=''">
+          <div style="width:34px;height:34px;background:rgba(16,185,129,0.12);border-radius:9px;
+                      display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="table-2" style="width:15px;color:#10b981;"></i>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:13px;">Audit Log CSV</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Last 500 system events</div>
+          </div>
+          <i data-lucide="download" style="width:14px;margin-left:auto;color:#94a3b8;"></i>
+        </a>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="finance-data">
+{
+  "trend_labels": {{ trend_labels|safe }},
+  "trend_revenue": {{ trend_revenue|safe }},
+  "trend_profit": {{ trend_profit|safe }},
+  "total_revenue": {{ total_revenue|floatformat:0|default:"0" }},
+  "total_cogs": {{ total_cogs|floatformat:0|default:"0" }},
+  "net_profit": {{ net_profit|floatformat:0|default:"0" }}
+}
+</script>
+<script>
+$(document).ready(function() {
+    // Initializing Lucide
+    lucide.createIcons();
+
+    const data = JSON.parse(document.getElementById('finance-data').textContent);
+
+    // Charting
+    var tL = data.trend_labels, tR = data.trend_revenue, tP = data.trend_profit;
+    if(tL.length){
+      new ApexCharts(document.getElementById('trendChart'),{
+        chart:{ type:'area', height:380, toolbar:{show:false}, fontFamily:'var(--font)', zoom:{enabled:false} },
+        series:[ {name:'Revenue', data:tR}, {name:'Net Profit', data:tP} ],
+        colors:['#10B981', '#3B82F6'],
+        fill: { type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.45, opacityTo:0.05, stops:[20,100] } },
+        stroke:{ curve:'smooth', width:[4, 4], lineCap:'round' },
+        dataLabels:{enabled:false},
+        xaxis:{ categories:tL, axisBorder:{show:false}, axisTicks:{show:false}, labels:{style:{fontSize:'11px', fontWeight:600, colors:'#94A3B8'}} },
+        yaxis:{ labels:{style:{colors:'#94A3B8', fontWeight:600}, formatter:v=>'Rs.'+Math.round(v).toLocaleString()} },
+        grid:{ borderColor:'#F1F5F9', strokeDashArray:4 },
+        legend:{ show:false },
+        tooltip:{ theme:'light', y:{formatter:v=>'Rs. '+v.toLocaleString()} }
+      }).render();
+    }
+
+    // CountUp Animations
+    animateValue('kpi-revenue', data.total_revenue);
+    animateValue('kpi-cogs', data.total_cogs);
+    animateValue('kpi-profit', data.net_profit);
+
+    // Dynamically calculate and set progress bar widths to avoid static CSS validator warnings
+    $('.finance-cat-bar').each(function() {
+        const percent = parseFloat($(this).data('percent')) || 0;
+        $(this).css('width', percent + '%');
+    });
+
+    // Highlight active range button based on current URL
+    const params = new URLSearchParams(window.location.search);
+    const start = params.get('start_date');
+    const end = params.get('end_date');
+    if(start && end) {
+        const diff = Math.round((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) + 1;
+        document.querySelectorAll('.qbtn').forEach(btn => {
+            if(parseInt(btn.dataset.days) === diff) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    } else {
+        document.querySelector('.qbtn[data-days="30"]').classList.add('active');
+    }
+
+    flatpickr('.flatpickr-date',{dateFormat:'Y-m-d'});
+});
+
+function printReport() {
+    var s = document.getElementById('sd').value;
+    var e = document.getElementById('ed').value;
+    
+    if (s && e) {
+        document.getElementById('printDateRange').innerText = "Period: " + s + " to " + e;
+    } else {
+        document.getElementById('printDateRange').innerText = "Period: All Time";
+    }
+    
+    var now = new Date();
+    document.getElementById('printTimestamp').innerText = 'Generated on: ' + now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    window.print();
+}
+
+function formatDateLocal(date) {
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, '0');
+    var d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+function applyDates(){
+    var s=document.getElementById('sd').value, e=document.getElementById('ed').value;
+    if(s && e) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('start_date', s);
+        url.searchParams.set('end_date', e);
+        window.location.href = url.toString();
+    }
+}
+function setRange(d,btn){
+  var end=new Date(),start=new Date();
+  start.setDate(end.getDate()-(d-1));
+  document.getElementById('ed').value=formatDateLocal(end);
+  document.getElementById('sd').value=formatDateLocal(start);
+  applyDates();
+}
+</script>
+{% endblock %}

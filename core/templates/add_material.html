@@ -1,0 +1,215 @@
+{% extends "base_manager.html" %}
+{% block title %}Add Raw Material{% endblock %}
+{% block nav_inventory %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-wrap { display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start; }
+.form-card { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.form-card-header {
+  padding:24px 28px;
+  background:linear-gradient(135deg,#1e3a5f,#2563eb);
+  display:flex; align-items:center; gap:16px;
+}
+.form-card-header .hdr-icon {
+  width:52px; height:52px; background:rgba(255,255,255,.15);
+  border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px;
+}
+.form-card-header h2 { color:#fff; font-size:19px; font-weight:800; margin-bottom:3px; }
+.form-card-header p  { color:rgba(255,255,255,.8); font-size:12px; margin:0; }
+.form-card-body { padding:28px; }
+.hint { font-size:11px; color:var(--text-4); margin-top:5px; display:flex; align-items:center; gap:4px; }
+.divider-label {
+  font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text-3); border-bottom:1.5px solid var(--border); padding-bottom:8px;
+  margin:22px 0 16px; display:flex; align-items:center; gap:8px;
+}
+.divider-label i { color:var(--primary); }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* Stock preview gauge */
+.gauge-wrap { background:var(--bg-3); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px; }
+.gauge-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-4); margin-bottom:10px; }
+.gauge-bar { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin-bottom:8px; }
+.gauge-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,var(--primary),#34d399); transition:width .4s; }
+.gauge-numbers { display:flex; justify-content:space-between; font-size:11px; font-weight:600; }
+
+@media(max-width:900px){ .page-wrap{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" data-aos="fade-down">
+  <h1><i class="bi bi-boxes" style="color:var(--info)"></i> Add Raw Material</h1>
+  <p>Register a new inventory item for stock tracking and recipe costing</p>
+</div>
+
+{% if message %}
+<div class="alert-pro {% if msg_type == 'success' %}success{% else %}error{% endif %} mb-4" data-aos="fade-down">
+  <i class="bi bi-{% if msg_type == 'success' %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>
+  {{ message }}
+</div>
+{% endif %}
+
+<div class="page-wrap">
+  <!-- FORM CARD -->
+  <div class="form-card" data-aos="fade-up">
+    <div class="form-card-header">
+      <div class="hdr-icon">🥩</div>
+      <div>
+        <h2>Material Details</h2>
+        <p>Define this raw material's properties and initial stock level</p>
+      </div>
+    </div>
+    <div class="form-card-body">
+      <form method="POST" class="form-pro" id="materialForm">
+        {% csrf_token %}
+
+        <div class="field-pro">
+          <label><i class="bi bi-card-text"></i> Material Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" id="matName" placeholder="e.g. Chicken, Basmati Rice, Cooking Oil..." required autocomplete="off">
+          <div class="hint"><i class="bi bi-info-circle"></i> Use a clear, specific name that matches your supplier invoices</div>
+        </div>
+
+        <div class="field-pro">
+          <label><i class="bi bi-grid-3x3-gap"></i> Category <span style="font-weight:400;color:var(--text-4);text-transform:none;font-size:11px">(Optional)</span></label>
+          <select name="category" class="select2">
+            <option value="">— No Category —</option>
+            {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+
+        <div class="divider-label"><i class="bi bi-tag-fill"></i> Pricing & Units</div>
+        <div class="two-col">
+          <div class="field-pro">
+            <label><i class="bi bi-rulers"></i> Unit of Measure</label>
+            <select name="unit" class="select2">
+              {% for u in units %}<option value="{{ u.0 }}">{{ u.1 }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field-pro">
+            <label><i class="bi bi-currency-rupee"></i> Cost per Unit (Rs.)</label>
+            <input type="number" name="cost" id="matCost" step="0.01" min="0" value="0" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="divider-label"><i class="bi bi-box-seam-fill"></i> Stock Settings</div>
+        <div class="two-col">
+          <div class="field-pro">
+            <label><i class="bi bi-database"></i> Opening Stock</label>
+            <input type="number" name="stock" id="matStock" step="0.001" min="0" value="0" placeholder="0.000"
+                   oninput="updateGauge()">
+            <div class="hint"><i class="bi bi-info-circle"></i> Current quantity on hand</div>
+          </div>
+          <div class="field-pro">
+            <label><i class="bi bi-bell"></i> Reorder Level</label>
+            <input type="number" name="reorder" id="matReorder" step="0.001" min="0" value="0" placeholder="0.000"
+                   oninput="updateGauge()">
+            <div class="hint"><i class="bi bi-info-circle"></i> Alert triggers below this</div>
+          </div>
+        </div>
+
+        <!-- Stock Preview Gauge -->
+        <div class="gauge-wrap">
+          <div class="gauge-label">Stock Level Preview</div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gaugeFill" style="width:100%"></div></div>
+          <div class="gauge-numbers">
+            <span id="gaugeLeft" style="color:var(--text-3)">0</span>
+            <span id="gaugeRight" style="color:var(--primary);font-weight:700">Stock OK</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">
+          <a href="/inventory/" class="btn-outline-pro" style="flex:1;justify-content:center">
+            <i class="bi bi-arrow-left"></i> Cancel
+          </a>
+          <button type="submit" class="btn-primary-pro" style="flex:2;justify-content:center;background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+            <i class="bi bi-plus-circle-fill"></i> Add Material
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div data-aos="fade-left" data-aos-delay="100">
+    <div class="card-pro" style="background:linear-gradient(135deg,#1e293b,#0f172a);margin-bottom:16px">
+      <div class="card-body">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);margin-bottom:16px">
+          <i class="bi bi-info-circle-fill" style="color:#3b82f6"></i> Why Track Materials?
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:20px;flex-shrink:0">📉</div>
+            <div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.8)">Automatic Deduction</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">Stock is deducted automatically when dishes using this ingredient are sold at POS.</div></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:20px;flex-shrink:0">💰</div>
+            <div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.8)">COGS Calculation</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">Cost per unit is used to calculate cost of goods sold (COGS) in financial reports.</div></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="font-size:20px;flex-shrink:0">🔔</div>
+            <div><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.8)">Low Stock Alerts</div><div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">Dashboard shows alerts when stock falls below your set reorder level.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-pro">
+      <div class="card-head"><h3><i class="bi bi-lightning-charge-fill" style="color:var(--warning)"></i> Quick Links</h3></div>
+      <div class="card-body" style="padding:12px 20px">
+        <a href="/inventory/" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-2);font-size:13px;font-weight:500;text-decoration:none;transition:.15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-2)'">
+          <i class="bi bi-box-seam" style="color:var(--primary)"></i> Inventory Management
+        </a>
+        <a href="/recipe-costing/" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--text-2);font-size:13px;font-weight:500;text-decoration:none;transition:.15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-2)'">
+          <i class="bi bi-calculator" style="color:#818cf8"></i> Recipe Costing Matrix
+        </a>
+        <a href="/add-dish/" style="display:flex;align-items:center;gap:10px;padding:10px 0;color:var(--text-2);font-size:13px;font-weight:500;text-decoration:none;transition:.15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-2)'">
+          <i class="bi bi-plus-circle" style="color:var(--accent)"></i> Add New Dish
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function(){
+  if($.fn.select2) $('select.select2').select2({ width:'100%' });
+});
+
+function updateGauge() {
+  const stock = parseFloat(document.getElementById('matStock').value) || 0;
+  const reorder = parseFloat(document.getElementById('matReorder').value) || 0;
+  const fill = document.getElementById('gaugeFill');
+  const left = document.getElementById('gaugeLeft');
+  const right = document.getElementById('gaugeRight');
+
+  left.textContent = 'Stock: ' + stock;
+
+  if (reorder <= 0) {
+    fill.style.width = '100%';
+    fill.style.background = 'linear-gradient(90deg,var(--primary),#34d399)';
+    right.textContent = 'OK';
+    right.style.color = 'var(--primary)';
+  } else {
+    const pct = Math.min((stock / (reorder * 2)) * 100, 100);
+    fill.style.width = pct + '%';
+    if (stock <= reorder) {
+      fill.style.background = 'linear-gradient(90deg,#ef4444,#f87171)';
+      right.textContent = '⚠ Low Stock!';
+      right.style.color = 'var(--danger)';
+    } else if (stock <= reorder * 1.5) {
+      fill.style.background = 'linear-gradient(90deg,#f59e0b,#fbbf24)';
+      right.textContent = 'Running Low';
+      right.style.color = 'var(--warning)';
+    } else {
+      fill.style.background = 'linear-gradient(90deg,var(--primary),#34d399)';
+      right.textContent = 'Stock OK';
+      right.style.color = 'var(--primary)';
+    }
+  }
+}
+</script>
+{% endblock %}

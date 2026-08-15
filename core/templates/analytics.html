@@ -1,0 +1,350 @@
+{% extends "base_manager.html" %}
+{% block title %}Sales Analytics{% endblock %}
+{% block page_title %}Strategic Insights{% endblock %}
+{% block page_subtitle %}High-fidelity performance metrics and revenue intelligence{% endblock %}
+{% block nav_analytics %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.fin-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:20px;margin-bottom:32px}
+.filter-bar {
+    background: var(--bg-pure);
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+.filter-bar label {
+    font-size: 11.5px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-row-2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:28px}
+.chart-row-3-2{display:grid;grid-template-columns:1.8fr 1fr;gap:28px;margin-bottom:28px}
+
+.kpi-pro {
+    background: var(--bg-pure); 
+    border: 1.5px solid var(--border); 
+    border-radius: 24px;
+    padding: 28px 24px; 
+    position: relative; 
+    overflow: hidden; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+    text-align: center;
+}
+.kpi-pro:hover { 
+    transform: translateY(-6px); 
+    box-shadow: 0 20px 40px rgba(0,0,0,0.06); 
+    border-color: var(--primary); 
+}
+.kpi-accent-top { position: absolute; top: 0; left: 0; right: 0; height: 5px; opacity: 0.8; }
+.kpi-lbl { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-4); letter-spacing: 1.2px; margin-bottom: 8px; }
+.kpi-val { font-size: 26px; font-weight: 900; color: var(--text-1); letter-spacing: -0.03em; margin-bottom: 4px; }
+.kpi-sub { font-size: 12.5px; font-weight: 600; color: var(--text-3); }
+
+.card-pro { 
+    background: var(--bg-pure); 
+    border: 1.5px solid var(--border); 
+    border-radius: 28px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02); 
+    overflow: hidden; 
+    transition: all 0.3s ease;
+}
+.card-head { padding: 26px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #ffffff; }
+.card-head h3 { font-size: 16px; font-weight: 900; color: var(--text-1); margin: 0; letter-spacing: -0.03em; display: flex; align-items: center; gap: 12px; }
+
+.qbtn {
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 12px; 
+    font-size: 12.5px; 
+    font-weight: 750; 
+    color: var(--text-2); 
+    background: transparent; 
+    cursor: pointer; 
+    transition: all 0.2s;
+}
+.qbtn.active { background: var(--bg-pure); color: var(--text-1); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.qbtn:hover:not(.active) { color: var(--primary); background: rgba(16, 185, 129, 0.05); }
+
+.empty-pro { text-align: center; color: var(--text-4); background: #fafafa; margin: 20px; border-radius: 20px; border: 1px dashed var(--border); }
+.empty-icon { font-size: 40px; margin-bottom: 16px; display: block; opacity: 0.5; }
+.empty-title { font-weight: 800; font-size: 16px; color: var(--text-2); }
+
+@media(max-width:1400px){.fin-grid{grid-template-columns:repeat(3,1fr)}.chart-row-3-2{grid-template-columns:1fr}}
+@media(max-width:900px){.fin-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- FILTER BAR -->
+<div class="filter-bar" data-aos="fade-down">
+  <label><i data-lucide="calendar-range" style="width:18px; color:var(--primary)"></i> Analysis Period</label>
+  <div style="display:flex; align-items:center; gap:12px; background: #f8fafc; padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border);">
+    <input type="text" id="sd" class="flatpickr-date" value="{{ start_date }}" style="border:none; background:transparent; font-size:14px; width:110px; outline:none; font-weight:800; color:var(--text-1)">
+    <i data-lucide="arrow-right" style="width:14px; color:var(--text-4)"></i>
+    <input type="text" id="ed" class="flatpickr-date" value="{{ end_date }}" style="border:none; background:transparent; font-size:14px; width:110px; outline:none; font-weight:800; color:var(--text-1)">
+  </div>
+  <button class="btn-primary-pro" onclick="applyDates()" style="padding:12px 28px; font-size:14px; border-radius:16px; background: var(--primary); color: white; font-weight: 800; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.15)">
+    <i data-lucide="refresh-cw" style="width:18px"></i> Update View
+  </button>
+  
+  <div class="quick-range" style="margin-left:auto; display:flex; gap:6px; background:#f1f5f9; padding:6px; border-radius:18px">
+    <button class="qbtn" onclick="setRange(1,this)">Today</button>
+    <button class="qbtn active" onclick="setRange(7,this)">7D</button>
+    <button class="qbtn" onclick="setRange(30,this)">30D</button>
+    <button class="qbtn" onclick="setRange(90,this)">90D</button>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="fin-grid">
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="0">
+    <div class="kpi-accent-top" style="background:#10B981"></div>
+    <div class="kpi-icon-wrap" style="background:#DCFCE7; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#10B981">
+        <i data-lucide="banknote"></i>
+    </div>
+    <div class="kpi-lbl">Revenue</div>
+    <div class="kpi-val" id="ana-rev" data-prefix="Rs. ">Rs. {{ total_revenue|floatformat:0 }}</div>
+    <div class="kpi-sub">{{ total_transactions }} orders</div>
+  </div>
+
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="50">
+    <div class="kpi-accent-top" style="background:#3B82F6"></div>
+    <div class="kpi-icon-wrap" style="background:#DBEAFE; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#3B82F6">
+        <i data-lucide="receipt"></i>
+    </div>
+    <div class="kpi-lbl">Transactions</div>
+    <div class="kpi-val" id="ana-txn">{{ total_transactions }}</div>
+    <div class="kpi-sub">{{ total_items_sold|floatformat:0 }} items</div>
+  </div>
+
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="100">
+    <div class="kpi-accent-top" style="background:#0d9488"></div>
+    <div class="kpi-icon-wrap" style="background:#CCFBF1; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#0d9488">
+        <i data-lucide="shopping-bag"></i>
+    </div>
+    <div class="kpi-lbl">Avg Order</div>
+    <div class="kpi-val" id="ana-avg" data-prefix="Rs. ">Rs. {% widthratio total_revenue total_transactions 1 %}</div>
+    <div class="kpi-sub">per checkout</div>
+  </div>
+
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="150">
+    <div class="kpi-accent-top" style="background:#F59E0B"></div>
+    <div class="kpi-icon-wrap" style="background:#FEF3C7; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#F59E0B">
+        <i data-lucide="truck"></i>
+    </div>
+    <div class="kpi-lbl">Cost (COGS)</div>
+    <div class="kpi-val" id="ana-cogs" data-prefix="Rs. ">Rs. {{ total_cogs|floatformat:0 }}</div>
+    <div class="kpi-sub">Direct production</div>
+  </div>
+
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="200">
+    <div class="kpi-accent-top" style="background:#EC4899"></div>
+    <div class="kpi-icon-wrap" style="background:#FCE7F3; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#EC4899">
+        <i data-lucide="trending-up"></i>
+    </div>
+    <div class="kpi-lbl">Gross Profit</div>
+    <div class="kpi-val" id="ana-prof" data-prefix="Rs. ">Rs. {{ gross_profit|floatformat:0 }}</div>
+    <div class="kpi-sub">Before overheads</div>
+  </div>
+
+  <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="250">
+    <div class="kpi-accent-top" style="background:#8B5CF6"></div>
+    <div class="kpi-icon-wrap" style="background:#F3E8FF; width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; color:#8B5CF6">
+        <i data-lucide="percent"></i>
+    </div>
+    <div class="kpi-lbl">Margin</div>
+    <div class="kpi-val" id="ana-marg" data-suffix="%">{{ profit_margin|floatformat:1 }}%</div>
+    <div class="kpi-sub">Efficiency index</div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 1 -->
+<div class="chart-row-3-2">
+  <div class="card-pro" data-aos="fade-up">
+    <div class="card-head">
+      <h3><i data-lucide="activity" style="color:#10B981"></i> Daily Revenue Velocity</h3>
+      <span class="badge-pro green" id="daysBadge"></span>
+    </div>
+    <div class="card-body">
+        {% if line_data != '[]' %}
+      <div id="lineChart" style="min-height:380px"></div>
+        {% else %}
+        <div class="empty-pro" style="padding:120px 0"><span class="empty-icon">📊</span><div class="empty-title">No activity detected</div></div>
+        {% endif %}
+    </div>
+  </div>
+
+  <div class="card-pro" data-aos="fade-up" data-aos-delay="100">
+    <div class="card-head">
+      <h3><i data-lucide="pie-chart" style="color:#8B5CF6"></i> Revenue Split</h3>
+      <span class="badge-pro purple" id="catBadge"></span>
+    </div>
+    <div class="card-body">
+        {% if pie_data != '[]' %}
+        <div id="pieChart" style="min-height:380px"></div>
+        {% else %}
+        <div class="empty-pro" style="padding:120px 0"><span class="empty-icon">🍩</span><div class="empty-title">No categories</div></div>
+        {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 2 -->
+<div class="chart-row-2">
+  <div class="card-pro" data-aos="fade-up">
+    <div class="card-head">
+      <h3><i data-lucide="award" style="color:#F59E0B"></i> Top Performing Dishes</h3>
+      <span class="badge-pro orange">BY REVENUE</span>
+    </div>
+    <div class="card-body">
+        {% if bar_data != '[]' %}
+        <div id="barChart" style="min-height:380px"></div>
+        {% else %}
+        <div class="empty-pro" style="padding:100px 0"><span class="empty-icon">💰</span><div class="empty-title">No leaderboard data</div></div>
+        {% endif %}
+    </div>
+  </div>
+
+  <div class="card-pro" data-aos="fade-up" data-aos-delay="100">
+    <div class="card-head">
+      <h3><i data-lucide="bar-chart-2" style="color:#3B82F6"></i> Volume Analysis</h3>
+      <span class="badge-pro blue">BY QUANTITY</span>
+    </div>
+    <div class="card-body">
+        {% if qty_data != '[]' %}
+        <div id="qtyChart" style="min-height:380px"></div>
+        {% else %}
+        <div class="empty-pro" style="padding:100px 0"><span class="empty-icon">🔢</span><div class="empty-title">No volume data</div></div>
+        {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="analytics-data">
+{
+  "line_labels": {{ line_labels|safe }},
+  "line_data": {{ line_data|safe }},
+  "pie_labels": {{ pie_labels|safe }},
+  "pie_data": {{ pie_data|safe }},
+  "bar_labels": {{ bar_labels|safe }},
+  "bar_data": {{ bar_data|safe }},
+  "qty_labels": {{ qty_labels|safe }},
+  "qty_data": {{ qty_data|safe }},
+  "total_revenue": {{ total_revenue|floatformat:0|default:"0" }},
+  "total_transactions": {{ total_transactions|floatformat:0|default:"0" }},
+  "total_cogs": {{ total_cogs|floatformat:0|default:"0" }},
+  "gross_profit": {{ gross_profit|floatformat:0|default:"0" }},
+  "profit_margin": {{ profit_margin|floatformat:1|default:"0" }}
+}
+</script>
+<script>
+$(document).ready(function() {
+    lucide.createIcons();
+
+    const data = JSON.parse(document.getElementById('analytics-data').textContent);
+    var lineLabels = data.line_labels, lineData = data.line_data;
+    var pieLabels = data.pie_labels, pieData = data.pie_data;
+    var barLabels = data.bar_labels, barData = data.bar_data;
+    var qtyLabels = data.qty_labels, qtyData = data.qty_data;
+
+    document.getElementById('daysBadge').textContent = lineLabels.length + ' days';
+    document.getElementById('catBadge').textContent = pieLabels.length + ' categories';
+
+    const commonOptions = {
+        chart: { toolbar: { show: false }, fontFamily: 'var(--font)', background: 'transparent' },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 4, lineCap: 'round' },
+        grid: { borderColor: '#F1F5F9', strokeDashArray: 4 },
+        tooltip: { theme: 'light' }
+    };
+
+    if(lineLabels.length){
+      new ApexCharts(document.getElementById('lineChart'), {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'area', height: 380 },
+        series: [{ name: 'Revenue', data: lineData }],
+        colors: ['#10B981'],
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [20, 100] } },
+        xaxis: { categories: lineLabels, labels: { style: { fontSize: '11px', fontWeight: 600, colors: '#94A3B8' } }, axisBorder:{show:false}, axisTicks:{show:false} },
+        yaxis: { labels: { style: { colors: '#94A3B8', fontWeight: 600 }, formatter: v => 'Rs.' + Math.round(v).toLocaleString() } },
+      }).render();
+    }
+
+    if(pieData.length){
+      new ApexCharts(document.getElementById('pieChart'), {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'donut', height: 380 },
+        series: pieData,
+        labels: pieLabels,
+        colors: ['#F97316', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899'],
+        plotOptions: { pie: { donut: { size: '75%', labels: { show: true, total: { show: true, label: 'Total Revenue', color:'#64748B', formatter: w => 'Rs.' + w.globals.seriesTotals.reduce((a, b) => a + b, 0).toLocaleString() } } } } },
+        legend: { position: 'bottom', fontSize: '12px', fontWeight: 700, markers: { radius: 12 } },
+        stroke: { width: 0 }
+      }).render();
+    }
+
+    const barOptions = (id, data, labels, color) => {
+      if(!data.length) return;
+      new ApexCharts(document.getElementById(id), {
+        ...commonOptions,
+        chart: { ...commonOptions.chart, type: 'bar', height: 380 },
+        series: [{ name: 'Value', data: data }],
+        colors: [color],
+        plotOptions: { bar: { borderRadius: 10, horizontal: true, barHeight: '60%' } },
+        xaxis: { categories: labels, labels: { style: { fontSize: '11px', colors: '#94A3B8' } } },
+        yaxis: { labels: { style: { fontSize: '12px', colors: '#475569', fontWeight: 800 } } },
+      }).render();
+    };
+
+    barOptions('barChart', barData, barLabels, '#F59E0B');
+    barOptions('qtyChart', qtyData, qtyLabels, '#3B82F6');
+
+    // CountUp Animations
+    animateValue('ana-rev', data.total_revenue);
+    animateValue('ana-txn', data.total_transactions);
+    animateValue('ana-avg', Math.round(data.total_revenue / (data.total_transactions || 1)));
+    animateValue('ana-cogs', data.total_cogs);
+    animateValue('ana-prof', data.gross_profit);
+    animateValue('ana-marg', data.profit_margin);
+
+    flatpickr('.flatpickr-date', { dateFormat: 'Y-m-d' });
+});
+
+function formatDateLocal(date) {
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, '0');
+    var d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+function applyDates(){var s=document.getElementById('sd').value,e=document.getElementById('ed').value;if(s&&e)location.href='/sales-analytics/?start_date='+s+'&end_date='+e;}
+function setRange(d,btn){
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  var end=new Date(),start=new Date();
+  start.setDate(end.getDate()-(d-1));
+  document.getElementById('ed').value=formatDateLocal(end);
+  document.getElementById('sd').value=formatDateLocal(start);
+  applyDates();
+}
+</script>
+{% endblock %}

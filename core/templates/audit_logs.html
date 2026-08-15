@@ -1,0 +1,187 @@
+{% extends "base_manager.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Security & Accountability{% endblock %}
+{% block page_subtitle %}Full forensic trail of all system activities and modifications{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Stats Grid */
+.log-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+.log-stat-card {
+    background: var(--bg-pure); border: 1px solid var(--border); border-radius: 20px;
+    padding: 24px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: center;
+    transition: all var(--transition);
+}
+.log-stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--primary); }
+.log-stat-icon {
+    width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center;
+    justify-content: center; margin-bottom: 12px; font-size: 20px;
+}
+.log-stat-val { font-size: 24px; font-weight: 850; color: var(--text-1); margin-bottom: 4px; }
+.log-stat-lbl { font-size: 11px; font-weight: 750; text-transform: uppercase; color: var(--text-4); letter-spacing: 0.5px; }
+
+/* Table Styling */
+.table-pro thead th {
+    background: var(--surface-2); color: var(--text-3); font-weight: 750;
+    text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+}
+.table-pro tbody td { padding: 16px 24px; border-bottom: 1px solid var(--border); color: var(--text-2); font-size: 13.5px; }
+.table-pro tbody tr:last-child td { border-bottom: none; }
+.table-pro tbody tr:hover { background: var(--bg); }
+
+/* Badge Styling */
+.action-badge {
+    padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800;
+    font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+}
+.badge-blue { background: #E0F2FE; color: #0369A1; }
+.badge-green { background: #DCFCE7; color: #15803D; }
+.badge-red { background: #FEE2E2; color: #B91C1C; }
+.badge-orange { background: #FFEDD5; color: #9A3412; }
+.badge-purple { background: #F3E8FF; color: #6B21A8; }
+.badge-gray { background: #F1F5F9; color: #475569; }
+
+/* DataTables Overrides */
+.dataTables_wrapper .dataTables_filter { margin-bottom: 20px; }
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 16px;
+    font-size: 13px; font-family: var(--font); outline: none;
+}
+.dataTables_wrapper .dataTables_length select { border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; }
+.dataTables_wrapper .dataTables_info { font-size: 13px; color: var(--text-4); margin-top: 16px; }
+.dataTables_wrapper .dataTables_paginate { margin-top: 16px; }
+.dataTables_paginate .paginate_button { border-radius: 8px !important; border: none !important; padding: 6px 12px !important; }
+.dataTables_paginate .paginate_button.current { background: var(--text-1) !important; color: white !important; }
+
+@media(max-width: 1200px) { .log-grid { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width: 768px) { .log-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- STATS STRIP -->
+<div class="log-grid" data-aos="fade-up">
+    <div class="log-stat-card">
+        <div class="log-stat-icon" style="background:#F1F5F9; color:var(--text-1)"><i data-lucide="layers"></i></div>
+        <div class="log-stat-val" id="stat-total">{{ logs|length }}</div>
+        <div class="log-stat-lbl">Total Events</div>
+    </div>
+    <div class="log-stat-card">
+        <div class="log-stat-icon" style="background:#DCFCE7; color:#166534"><i data-lucide="check-circle-2"></i></div>
+        <div class="log-stat-val" id="stat-success">Active</div>
+        <div class="log-stat-lbl">System Health</div>
+    </div>
+    <div class="log-stat-card">
+        <div class="log-stat-icon" style="background:#E0F2FE; color:#0369A1"><i data-lucide="users"></i></div>
+        <div class="log-stat-val">Global</div>
+        <div class="log-stat-lbl">Audit Scope</div>
+    </div>
+    <div class="log-stat-card">
+        <div class="log-stat-icon" style="background:#F3E8FF; color:#6B21A8"><i data-lucide="history"></i></div>
+        <div class="log-stat-val">100</div>
+        <div class="log-stat-lbl">Depth Limit</div>
+    </div>
+    <div class="log-stat-card">
+        <div class="log-stat-icon" style="background:#FFF7ED; color:#9A3412"><i data-lucide="zap"></i></div>
+        <div class="log-stat-val">Live</div>
+        <div class="log-stat-lbl">Stream Mode</div>
+    </div>
+</div>
+
+<div class="card-pro" data-aos="fade-up" data-aos-delay="100">
+    <div class="card-head">
+        <h3><i data-lucide="list-tree" style="color:var(--primary)"></i> Master Activity Stream</h3>
+        <div style="display:flex; align-items:center; gap:12px">
+            <a href="?export=csv"
+               class="btn-primary-pro"
+               style="padding:8px 16px; font-size:12px; background:#065f46; color:#fff; box-shadow:none; border:none; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="download" style="width:14px"></i> Export CSV
+            </a>
+        </div>
+    </div>
+    <div class="card-body" style="padding:0">
+        <table id="auditTable" class="table-pro w-100">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Operator</th>
+                    <th>Action Code</th>
+                    <th>Entity</th>
+                    <th>Forensic Details</th>
+                    <th>IP Origin</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px; font-weight:600">
+                            <i data-lucide="clock" style="width:14px; height:14px; color:var(--text-4)"></i>
+                            {{ log.created_at|date:"M d, H:i:s" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px">
+                            <div style="width:28px; height:28px; border-radius:8px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800">
+                                {{ log.user.full_name|slice:":1"|upper|default:"S" }}
+                            </div>
+                            <span style="font-weight:700">{{ log.user.full_name|default:"SYSTEM" }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="action-badge 
+                            {% if 'LOGIN' in log.action_code %}badge-green
+                            {% elif 'VOID' in log.action_code or 'DELETE' in log.action_code %}badge-red
+                            {% elif 'TXN' in log.action_code %}badge-blue
+                            {% elif 'STOCK' in log.action_code %}badge-orange
+                            {% elif 'PRICE' in log.action_code or 'DISH' in log.action_code %}badge-purple
+                            {% else %}badge-gray{% endif %}">
+                            {{ log.action_code }}
+                        </span>
+                    </td>
+                    <td><span style="font-weight:600; color:var(--text-1)">{{ log.entity_type }}</span> <small style="color:var(--text-4)">#{{ log.entity_id }}</small></td>
+                    <td><div style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--text-3)">{{ log.details|default:"—" }}</div></td>
+                    <td><code style="font-size:11px; color:var(--text-4)">{{ log.ip_address|default:"127.0.0.1" }}</code></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="audit-data">
+{
+  "logs_count": {{ logs|length }}
+}
+</script>
+<script>
+    $(document).ready(function() {
+        // Initialize DataTables
+        const table = $('#auditTable').DataTable({
+            pageLength: 15,
+            order: [[0, 'desc']],
+            dom: '<"p-4 d-flex justify-content-between align-items-center"f>t<"p-4 d-flex justify-content-between align-items-center"ip>',
+            language: {
+                search: "",
+                searchPlaceholder: "Search audit logs...",
+                lengthMenu: "_MENU_ entries per page"
+            }
+        });
+
+        // Initialize CountUp
+        const auditData = JSON.parse(document.getElementById('audit-data').textContent);
+        animateValue('stat-total', auditData.logs_count);
+        
+        // Re-init lucide after datatable draws (for pagination/searching)
+        table.on('draw', function() {
+            lucide.createIcons();
+        });
+    });
+</script>
+{% endblock %}

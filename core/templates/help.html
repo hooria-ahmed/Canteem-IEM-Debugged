@@ -1,0 +1,187 @@
+{% extends "base_manager.html" %}
+
+{% block title %}Help & Guides{% endblock %}
+{% block page_title %}Help Center{% endblock %}
+{% block page_subtitle %}Documentation and guides for using the Canteen Management System{% endblock %}
+{% block nav_help %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+    .help-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-top: 24px;
+    }
+    .help-card {
+        background: var(--bg-pure);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 32px;
+        transition: all var(--transition);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .help-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+    }
+    .help-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-soft);
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+    .help-title {
+        font-size: 18px;
+        font-weight: 850;
+        letter-spacing: -0.02em;
+        color: var(--text-1);
+    }
+    .help-desc {
+        font-size: 14px;
+        color: var(--text-3);
+        line-height: 1.6;
+        font-weight: 500;
+        flex: 1;
+    }
+    .help-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 800;
+        color: var(--primary);
+        text-decoration: none;
+        margin-top: 8px;
+    }
+    .help-action:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+    .faq-section {
+        margin-top: 60px;
+        background: var(--bg-pure);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 40px;
+    }
+    .faq-header {
+        font-size: 24px;
+        font-weight: 900;
+        margin-bottom: 32px;
+        color: var(--text-1);
+    }
+    .faq-item {
+        border-bottom: 1px solid var(--border);
+        padding: 24px 0;
+    }
+    .faq-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .faq-q {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text-1);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .faq-a {
+        font-size: 14.5px;
+        color: var(--text-3);
+        line-height: 1.7;
+        font-weight: 500;
+        padding-left: 36px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="help-grid">
+    <div class="help-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="help-icon">
+            <i data-lucide="monitor"></i>
+        </div>
+        <div class="help-title">POS Terminal Guide</div>
+        <div class="help-desc">Learn how to process orders, use the quick-add categories, manage quantities, and successfully check out a customer in real-time.</div>
+        <a href="/pos/" class="help-action">Launch POS <i data-lucide="arrow-right" style="width: 16px;"></i></a>
+    </div>
+
+    <div class="help-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="help-icon">
+            <i data-lucide="chef-hat"></i>
+        </div>
+        <div class="help-title">Kitchen Display System</div>
+        <div class="help-desc">Understand how orders flow from the POS to the Kitchen Display, and how chefs can mark orders as 'Preparing' and 'Ready'.</div>
+        <a href="/kitchen/" class="help-action">View KDS <i data-lucide="arrow-right" style="width: 16px;"></i></a>
+    </div>
+
+    <div class="help-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="help-icon">
+            <i data-lucide="package"></i>
+        </div>
+        <div class="help-title">Inventory & Procurement</div>
+        <div class="help-desc">Master the stock levels, automatic low-stock alerts, and the one-click process to generate Purchase Orders to your suppliers.</div>
+        <a href="/inventory/" class="help-action">Manage Stock <i data-lucide="arrow-right" style="width: 16px;"></i></a>
+    </div>
+
+    <div class="help-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="help-icon">
+            <i data-lucide="trending-up"></i>
+        </div>
+        <div class="help-title">Finance & Analytics</div>
+        <div class="help-desc">Dive into the financial hub to log expenses, view daily P&L statements, and analyze sales trends through dynamic charts.</div>
+        <a href="/finance/" class="help-action">Open Finance Hub <i data-lucide="arrow-right" style="width: 16px;"></i></a>
+    </div>
+</div>
+
+<div class="faq-section" data-aos="fade-up">
+    <div class="faq-header">Frequently Asked Questions</div>
+    
+    <div class="faq-item">
+        <div class="faq-q">
+            <i data-lucide="help-circle" style="color: var(--primary);"></i>
+            How are ingredient costs tracked?
+        </div>
+        <div class="faq-a">
+            Ingredient costs are managed in the <strong>Inventory -> Update Cost</strong> tab. The system automatically recalculates the overall Cost of Goods Sold (COGS) for your dishes based on their recipes whenever ingredient prices change.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-q">
+            <i data-lucide="help-circle" style="color: var(--primary);"></i>
+            What happens when an item goes out of stock?
+        </div>
+        <div class="faq-a">
+            If an item's raw materials fall below required levels, it will be flagged as "Low Stock" or "Out of Stock" on the POS Terminal to prevent cashiers from selling items the kitchen cannot make.
+        </div>
+    </div>
+
+    <div class="faq-item">
+        <div class="faq-q">
+            <i data-lucide="help-circle" style="color: var(--primary);"></i>
+            How do I add a new expense?
+        </div>
+        <div class="faq-a">
+            Navigate to the <strong>Finance Hub</strong> and click "Log New Expense". Make sure to choose the correct date, category, and descriptive name so your Profit & Loss statements remain accurate.
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        lucide.createIcons();
+    });
+</script>
+{% endblock %}

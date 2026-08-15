@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - CanteenERP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #10B981;
+            --primary-light: #D1FAE5;
+            --primary-dark: #059669;
+            --surface: #ffffff;
+            --background: #F8FAFC;
+            --text-1: #0F172A;
+            --text-2: #475569;
+            --text-3: #94A3B8;
+            --border: #E2E8F0;
+            --danger: #EF4444;
+            --danger-bg: #FEE2E2;
+            --warning: #F59E0B;
+            --warning-bg: #FEF3C7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text-1);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px;
+            width: 95%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-1);
+            text-align: center;
+        }
+
+        .line {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border);
+            font-size: 14px;
+        }
+
+        .line:last-of-type {
+            border-bottom: none;
+        }
+
+        .line-name {
+            color: var(--text-2);
+            font-weight: 500;
+        }
+
+        .line-val {
+            font-weight: 600;
+            color: var(--text-1);
+        }
+
+        .total-box {
+            background: var(--primary-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-label {
+            font-size: 14px;
+            color: var(--primary-dark);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .total-val {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary-dark);
+            letter-spacing: -0.5px;
+        }
+
+        .quick-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-2);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .field {
+            margin-bottom: 20px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 8px;
+        }
+
+        .field input[type="number"], .field input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--background);
+            color: var(--text-1);
+            font-size: 20px;
+            font-weight: 700;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .field input[type="number"]:focus, .field input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .change-box {
+            background: var(--warning-bg);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .change-box.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .change-label {
+            font-size: 12px;
+            color: var(--warning);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .change-val {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--warning);
+            margin-top: 4px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-back {
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-2);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: var(--background);
+            color: var(--text-1);
+        }
+
+        .btn-pay {
+            flex: 2;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-pay:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-pay:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Custom Radio Buttons */
+        .radio-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .radio-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .radio-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .radio-option input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .radio-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-2);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option input:checked ~ .radio-card {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+        
+        .hidden-field {
+            display: none !important;
+        }
+
+        /* Modal & Blur Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 380px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            padding: 10px;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Hide scrollbar for modal content */
+        .modal-content::-webkit-scrollbar { display: none; }
+        .modal-content { -ms-overflow-style: none; scrollbar-width: none; }
+
+    </style>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<body>
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal-overlay">
+        <div class="modal-content" id="modalContent">
+            <!-- HTMX injects receipt here -->
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Collect Payment</div>
+
+        {% for item in cart_items %}
+        <div class="line">
+            <span class="line-name">{{ item.name }} &times; {{ item.qty }}</span>
+            <span class="line-val">Rs. {{ item.total }}</span>
+        </div>
+        {% endfor %}
+
+        <div class="total-box">
+            <span class="total-label">Total Due</span>
+            <span class="total-val">Rs. {{ grand_total }}</span>
+        </div>
+
+        <form id="checkoutForm" hx-post="/process-checkout/" hx-target="#modalContent" hx-swap="innerHTML" hx-indicator="#payBtn">
+            {% csrf_token %}
+            
+            <div class="field">
+                <span class="radio-label">Order Type</span>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="order_type" value="dine_in" checked onchange="toggleTableMode()">
+                        <div class="radio-card"><i data-lucide="utensils" style="width: 16px; height: 16px;"></i> Dine-In</div>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="order_type" value="takeaway" onchange="toggleTableMode()">
+                        <div class="radio-card"><i data-lucide="shopping-bag" style="width: 16px; height: 16px;"></i> Takeaway</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field" id="tableNoArea">
+                <label>Table Number (Optional)</label>
+                <input type="text" name="table_no" id="tableNoInput" placeholder="e.g. T-04">
+            </div>
+
+            <div class="field">
+                <span class="radio-label">Payment Method</span>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="payment_method" value="cash" checked onchange="togglePaymentMode()">
+                        <div class="radio-card"><i data-lucide="banknote" style="width: 16px; height: 16px;"></i> Cash</div>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="payment_method" value="card" onchange="togglePaymentMode()">
+                        <div class="radio-card"><i data-lucide="credit-card" style="width: 16px; height: 16px;"></i> Card</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field" id="cashInputArea">
+                <label>Amount Received</label>
+                <div class="quick-row">
+                    <button type="button" class="quick-btn" onclick="setExact()">Exact</button>
+                    <button type="button" class="quick-btn" onclick="addAmt(500)">+500</button>
+                    <button type="button" class="quick-btn" onclick="addAmt(1000)">+1000</button>
+                    <button type="button" class="quick-btn" onclick="addAmt(5000)">+5000</button>
+                </div>
+                <input type="number" name="amount_received" id="amtInput" step="0.01" min="0" autofocus
+                    oninput="calc()">
+            </div>
+
+            <div class="change-box" id="changeBox">
+                <div class="change-label">Change</div>
+                <div class="change-val" id="changeVal">Rs. 0</div>
+            </div>
+
+            <div class="btn-row">
+                <a href="/pos/" class="btn-back">← Back</a>
+                <button type="submit" class="btn-pay" id="payBtn" disabled>
+                    <span id="payBtnText">Complete Sale</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const total = parseFloat("{{ grand_total|default:0 }}");
+        const input = document.getElementById('amtInput');
+        const box = document.getElementById('changeBox');
+        const val = document.getElementById('changeVal');
+        const btn = document.getElementById('payBtn');
+        const cashArea = document.getElementById('cashInputArea');
+        const tableArea = document.getElementById('tableNoArea');
+        const tableInput = document.getElementById('tableNoInput');
+        
+        function calc() {
+            const isCash = document.querySelector('input[name="payment_method"]:checked').value === 'cash';
+            
+            if (isCash) {
+                const r = parseFloat(input.value) || 0;
+                if (r >= total) { 
+                    box.classList.add('show'); 
+                    val.textContent = 'Rs. ' + (r - total).toFixed(2); 
+                    btn.disabled = false; 
+                } else { 
+                    box.classList.remove('show'); 
+                    btn.disabled = true; 
+                }
+            } else {
+                box.classList.remove('show');
+                btn.disabled = false; // Card payment assumes full payment via POS machine
+            }
+        }
+        
+        function setExact() { input.value = total.toFixed(2); calc(); }
+        function addAmt(n) { input.value = (parseFloat(input.value || 0) + n).toFixed(2); calc(); }
+        
+        function togglePaymentMode() {
+            const isCash = document.querySelector('input[name="payment_method"]:checked').value === 'cash';
+            if (isCash) {
+                cashArea.style.display = 'block';
+                input.required = true;
+                calc(); // revalidate
+            } else {
+                cashArea.style.display = 'none';
+                input.required = false;
+                input.value = total.toFixed(2); // Auto fill for form submission
+                calc(); // Auto enable button
+            }
+        }
+
+        function toggleTableMode() {
+            const isDineIn = document.querySelector('input[name="order_type"]:checked').value === 'dine_in';
+            if (isDineIn) {
+                tableArea.style.display = 'block';
+            } else {
+                tableArea.style.display = 'none';
+                tableInput.value = ''; // clear table no if takeaway
+            }
+        }
+        
+        // Initial setup
+        togglePaymentMode();
+        toggleTableMode();
+
+        lucide.createIcons();
+
+        // ✅ FIXED: htmx:afterOnLoad is deprecated — use htmx:afterSwap
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'modalContent') {
+                const modal = document.getElementById('receiptModal');
+                // Only show if content was actually injected (receipt HTML)
+                if (modal && evt.detail.xhr && evt.detail.xhr.status === 200) {
+                    modal.classList.add('active');
+                    lucide.createIcons();
+                }
+            }
+        });
+
+        // Handle server-side errors (status 400, 500)
+        document.addEventListener('htmx:responseError', function(evt) {
+            const errText = evt.detail.xhr.responseText || 'An error occurred. Please try again.';
+            document.getElementById('payBtn').disabled = false;
+            document.getElementById('payBtnText').textContent = 'Complete Sale';
+            alert('Checkout Error: ' + errText);
+        });
+
+        // Show loading state on submit
+        document.getElementById('checkoutForm').addEventListener('htmx:beforeRequest', function() {
+            const btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            document.getElementById('payBtnText').textContent = 'Processing...';
+        });
+    </script>
+</body>
+
+</html>

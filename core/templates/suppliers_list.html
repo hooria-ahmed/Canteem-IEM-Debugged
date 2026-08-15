@@ -1,0 +1,450 @@
+{% extends "base_manager.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block page_title %}Supplier Directory{% endblock %}
+{% block page_subtitle %}Manage your vendors and procurement contacts in one place.{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+    .kpi-box {
+        background: var(--bg-pure); border: 1.5px solid var(--border);
+        border-radius: 20px; padding: 24px 28px;
+        display: flex; align-items: center; gap: 18px;
+    }
+    .kpi-box-icon {
+        width: 48px; height: 48px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .kpi-box-val { font-size: 26px; font-weight: 900; color: var(--text-1); letter-spacing: -0.04em; }
+    .kpi-box-lbl { font-size: 12px; font-weight: 700; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .supplier-table { width: 100%; border-collapse: collapse; }
+    .supplier-table th {
+        text-align: left; padding: 14px 20px;
+        font-size: 11px; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.08em; color: var(--text-4);
+        border-bottom: 2px solid var(--border); background: var(--surface-2);
+    }
+    .supplier-table td { padding: 16px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .supplier-table tr:last-child td { border-bottom: none; }
+    .supplier-table tbody tr { transition: background var(--transition); }
+    .supplier-table tbody tr:hover { background: var(--bg); }
+
+    .supplier-name { font-weight: 800; font-size: 15px; color: var(--text-1); }
+    .supplier-contact { font-size: 12px; color: var(--text-4); font-weight: 600; margin-top: 2px; }
+
+    .badge-status {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-status.active { background: #dcfce7; color: #16a34a; }
+    .badge-status.inactive { background: #f1f5f9; color: #94a3b8; }
+
+    .action-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700;
+        cursor: pointer; transition: all var(--transition); border: none; text-decoration: none;
+    }
+    .btn-edit { background: var(--surface-2); color: var(--text-2); }
+    .btn-edit:hover { background: var(--border); color: var(--text-1); }
+    .btn-toggle { background: #fef9c3; color: #92400e; }
+    .btn-toggle:hover { background: #fef08a; }
+    .btn-del { background: #fee2e2; color: #b91c1c; }
+    .btn-del:hover { background: #fecaca; }
+    .btn-po { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+    .btn-po:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(16,185,129,0.25); }
+
+    /* Modal */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        z-index: 2000; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+        background: var(--bg-pure); border-radius: 24px; padding: 36px;
+        width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        animation: modal-in 0.25s ease;
+    }
+    @keyframes modal-in { from { opacity:0; transform: scale(0.96) translateY(8px); } }
+    .modal-title { font-size: 20px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 24px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .field-group { display: flex; flex-direction: column; gap: 6px; }
+    .field-group label { font-size: 12px; font-weight: 800; color: var(--text-3); text-transform: uppercase; }
+    .field-group input, .field-group select, .field-group textarea {
+        padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px;
+        font-family: var(--font); font-weight: 600; font-size: 14px;
+        transition: border-color var(--transition); outline: none;
+        background: var(--bg-pure); color: var(--text-1);
+    }
+    .field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+        border-color: var(--primary);
+    }
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+    .toggle-wrap input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); }
+
+    .filter-bar { display: flex; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .search-wrap { position: relative; flex: 1; }
+    .search-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; color: var(--text-4); }
+    .search-wrap input {
+        width: 100%; padding: 11px 14px 11px 42px; border-radius: 12px;
+        border: 1.5px solid var(--border); font-family: var(--font);
+        font-weight: 600; outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--primary); }
+    .filter-select {
+        padding: 11px 14px; border-radius: 12px; border: 1.5px solid var(--border);
+        font-family: var(--font); font-weight: 700; outline: none; cursor: pointer;
+    }
+
+    /* Outstanding balance style */
+    .outstanding-positive { color: var(--accent) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- KPI Row -->
+<div class="kpi-row" data-aos="fade-up">
+    <div class="kpi-box">
+        <div class="kpi-box-icon" style="background:#dcfce7">
+            <i data-lucide="truck" style="color:#16a34a"></i>
+        </div>
+        <div>
+            <div class="kpi-box-val">{{ total_suppliers }}</div>
+            <div class="kpi-box-lbl">Total Suppliers</div>
+        </div>
+    </div>
+    <div class="kpi-box">
+        <div class="kpi-box-icon" style="background:#dbeafe">
+            <i data-lucide="check-circle" style="color:#2563eb"></i>
+        </div>
+        <div>
+            <div class="kpi-box-val">{{ active_count }}</div>
+            <div class="kpi-box-lbl">Active Vendors</div>
+        </div>
+    </div>
+    <div class="kpi-box">
+        <div class="kpi-box-icon" style="background:#fef3c7">
+            <i data-lucide="credit-card" style="color:#d97706"></i>
+        </div>
+        <div>
+            <div class="kpi-box-val">Rs. {{ total_outstanding|floatformat:0 }}</div>
+            <div class="kpi-box-lbl">Outstanding Balance</div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Table -->
+<div class="card-pro" data-aos="fade-up" data-aos-delay="100">
+    <div class="filter-bar">
+        <div class="search-wrap">
+            <i data-lucide="search"></i>
+            <input type="text" id="liveSearch" placeholder="Search suppliers..." value="{{ search }}">
+        </div>
+        <select id="statusFilter" class="filter-select">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+        <button class="btn-primary-pro" onclick="openModal()" style="padding: 11px 20px; font-size: 13px; white-space:nowrap;">
+            <i data-lucide="plus-circle"></i> Add Supplier
+        </button>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="supplier-table" id="supplierTable">
+            <thead>
+                <tr>
+                    <th>Supplier</th>
+                    <th>Contact</th>
+                    <th>Phone / Email</th>
+                    <th>Payment Terms</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in suppliers %}
+                <tr id="row-{{ s.id }}">
+                    <td>
+                        <div class="supplier-name">{{ s.name }}</div>
+                        {% if s.city %}<div class="supplier-contact">📍 {{ s.city }}</div>{% endif %}
+                    </td>
+                    <td>{{ s.contact_person|default:"—" }}</td>
+                    <td>
+                        {% if s.phone %}<div style="font-weight:700;">{{ s.phone }}</div>{% endif %}
+                        {% if s.email %}<div style="font-size:12px;color:var(--text-4);">{{ s.email }}</div>{% endif %}
+                        {% if not s.phone and not s.email %}<span style="color:var(--text-4);">—</span>{% endif %}
+                    </td>
+                    <td>{{ s.payment_terms|default:"—" }}</td>
+                    <td class="{% if s.outstanding_balance > 0 %}outstanding-positive{% endif %}" style="font-weight:900">
+                        Rs. {{ s.outstanding_balance|floatformat:0 }}
+                    </td>
+                    <td>
+                        <span class="badge-status {% if s.is_active %}active{% else %}inactive{% endif %}" id="badge-{{ s.id }}">
+                            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+                            {% if s.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+                            <a href="{% url 'create_purchase_order' %}?supplier={{ s.id }}" class="action-btn btn-po">
+                                <i data-lucide="shopping-cart" style="width:13px;"></i> PO
+                            </a>
+                            <button class="action-btn btn-edit" data-id="{{ s.id }}">
+                                <i data-lucide="edit" style="width:13px;"></i> Edit
+                            </button>
+                            <button class="action-btn btn-toggle" data-id="{{ s.id }}" data-name="{{ s.name }}">
+                                <i data-lucide="{% if s.is_active %}pause{% else %}play{% endif %}" style="width:13px;" id="toggle-icon-{{ s.id }}"></i>
+                            </button>
+                            <button class="action-btn btn-del" data-id="{{ s.id }}" data-name="{{ s.name }}">
+                                <i data-lucide="trash-2" style="width:13px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center;padding:60px;color:var(--text-4);">
+                        <i data-lucide="truck" style="width:48px;height:48px;opacity:.2;display:block;margin:0 auto 12px;"></i>
+                        <div style="font-weight:800;font-size:16px;">No suppliers found</div>
+                        <div style="font-size:13px;margin-top:4px;">Click "Add Supplier" to get started.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="supplierModal">
+    <div class="modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+            <div class="modal-title" id="modalTitle">Add New Supplier</div>
+            <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-4);">✕</button>
+        </div>
+        <form id="supplierForm">
+            {% csrf_token %}
+            <input type="hidden" id="supplierId" name="supplier_id" value="">
+            <div class="form-grid">
+                <div class="field-group full">
+                    <label>Company Name *</label>
+                    <input type="text" name="name" id="f_name" placeholder="e.g. Al-Fatah Trading Co." required>
+                </div>
+                <div class="field-group">
+                    <label>Contact Person</label>
+                    <input type="text" name="contact_person" id="f_contact" placeholder="Full name">
+                </div>
+                <div class="field-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" id="f_phone" placeholder="+92 300 0000000">
+                </div>
+                <div class="field-group full">
+                    <label>Email</label>
+                    <input type="email" name="email" id="f_email" placeholder="supplier@example.com">
+                </div>
+                <div class="field-group full">
+                    <label>Street Address</label>
+                    <input type="text" name="street" id="f_street" placeholder="Street / Area">
+                </div>
+                <div class="field-group">
+                    <label>City</label>
+                    <input type="text" name="city" id="f_city" placeholder="e.g. Lahore">
+                </div>
+                <div class="field-group">
+                    <label>Zip / Postal Code</label>
+                    <input type="text" name="zip_code" id="f_zip" placeholder="54000">
+                </div>
+                <div class="field-group full">
+                    <label>Payment Terms</label>
+                    <input type="text" name="payment_terms" id="f_terms" placeholder="e.g. Net 30 days, COD">
+                </div>
+                <div class="field-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" id="f_notes" rows="3" placeholder="Any additional information..."></textarea>
+                </div>
+                <div class="field-group full">
+                    <div class="toggle-wrap">
+                        <input type="checkbox" name="is_active" id="f_active" checked>
+                        <label for="f_active" style="text-transform:none;font-size:14px;font-weight:700;">Mark as Active</label>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:28px;">
+                <button type="button" class="btn-outline-pro" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary-pro" id="saveBtn">
+                    <i data-lucide="check-circle"></i> Save Supplier
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    lucide.createIcons();
+
+    // Live search + status filter
+    let searchTimeout;
+    $('#liveSearch').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(filterTable, 150);
+    });
+    $('#statusFilter').on('change', filterTable);
+
+    function filterTable() {
+        const q = $('#liveSearch').val().toLowerCase();
+        const status = $('#statusFilter').val();
+        $('#supplierTable tbody tr').each(function() {
+            const name = $(this).find('.supplier-name').text().toLowerCase();
+            const badge = $(this).find('.badge-status');
+            const isActive = badge.hasClass('active');
+            const matchSearch = name.includes(q);
+            const matchStatus = (status === 'all') ||
+                                (status === 'active' && isActive) ||
+                                (status === 'inactive' && !isActive);
+            $(this).toggle(matchSearch && matchStatus);
+        });
+    }
+
+    // Dynamic Event Bindings to avoid inline onclick syntax errors
+    $(document).on('click', '.btn-edit', function() {
+        const id = $(this).data('id');
+        if (id) editSupplier(id);
+    });
+
+    $(document).on('click', '.btn-toggle', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        if (id && name) toggleStatus(id, name);
+    });
+
+    $(document).on('click', '.btn-del', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        if (id && name) deleteSupplier(id, name);
+    });
+});
+
+function openModal(data = null) {
+    $('#supplierForm')[0].reset();
+    $('#supplierId').val('');
+    $('#modalTitle').text('Add New Supplier');
+    $('#f_active').prop('checked', true);
+    if (data) {
+        $('#modalTitle').text('Edit Supplier');
+        $('#supplierId').val(data.id);
+        $('#f_name').val(data.name);
+        $('#f_contact').val(data.contact_person);
+        $('#f_phone').val(data.phone);
+        $('#f_email').val(data.email);
+        $('#f_street').val(data.street);
+        $('#f_city').val(data.city);
+        $('#f_zip').val(data.zip_code);
+        $('#f_terms').val(data.payment_terms);
+        $('#f_notes').val(data.notes);
+        $('#f_active').prop('checked', data.is_active);
+    }
+    $('#supplierModal').addClass('open');
+    lucide.createIcons();
+}
+
+function closeModal() { $('#supplierModal').removeClass('open'); }
+
+async function editSupplier(id) {
+    try {
+        const res = await fetch(`/suppliers/${id}/edit/`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+        openModal(data);
+    } catch(e) { notyf.error('Failed to load supplier data.'); }
+}
+
+$('#supplierForm').on('submit', async function(e) {
+    e.preventDefault();
+    const btn = $('#saveBtn');
+    btn.prop('disabled', true).html('<i data-lucide="loader" style="width:16px;animation:spin 1s linear infinite"></i> Saving...');
+    lucide.createIcons();
+    const id = $('#supplierId').val();
+    const url = id ? `/suppliers/${id}/edit/` : '/suppliers/add/';
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            body: new FormData(this)
+        });
+        const result = await res.json();
+        if (result.success) {
+            notyf.success(result.message);
+            closeModal();
+            setTimeout(() => location.reload(), 700);
+        } else {
+            notyf.error(result.error);
+        }
+    } catch(e) { notyf.error('Network error.'); }
+    btn.prop('disabled', false).html('<i data-lucide="check-circle"></i> Save Supplier');
+    lucide.createIcons();
+});
+
+async function toggleStatus(id, name) {
+    if (!confirm(`Toggle status for "${name}"?`)) return;
+    try {
+        const res = await fetch(`/suppliers/${id}/toggle/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const badge = $(`#badge-${id}`);
+            if (data.is_active) {
+                badge.removeClass('inactive').addClass('active').html('<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span> Active');
+                $(`#toggle-icon-${id}`).attr('data-lucide', 'pause');
+            } else {
+                badge.removeClass('active').addClass('inactive').html('<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span> Inactive');
+                $(`#toggle-icon-${id}`).attr('data-lucide', 'play');
+            }
+            lucide.createIcons();
+            notyf.success(`${data.name} status updated.`);
+            setTimeout(() => location.reload(), 900);
+        }
+    } catch(e) { notyf.error('Failed to toggle status.'); }
+}
+
+async function deleteSupplier(id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+        const res = await fetch(`/suppliers/${id}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            notyf.success(data.message);
+            $(`#row-${id}`).fadeOut(400, function() {
+                $(this).remove();
+                setTimeout(() => location.reload(), 600);
+            });
+        }
+    } catch(e) { notyf.error('Delete failed.'); }
+}
+
+// Close modal on overlay click
+$('#supplierModal').on('click', function(e) {
+    if ($(e.target).is('#supplierModal')) closeModal();
+});
+</script>
+<style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

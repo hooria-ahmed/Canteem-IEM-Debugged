@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Canteen Executive{% endblock %}</title>
+    <!-- Google Fonts: DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- UI Libraries CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #10b981;
+            --primary-soft: #ecfdf5;
+            --primary-glow: rgba(16, 185, 129, 0.15);
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --bg-pure: #ffffff;
+            --surface-1: #ffffff;
+            --surface-2: #f1f5f9;
+            --border: #e2e8f0;
+            --text-1: #0f172a;
+            --text-2: #334155;
+            --text-3: #64748b;
+            --text-4: #94a3b8;
+            --font: 'DM Sans', sans-serif;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.04), 0 4px 6px -2px rgba(0,0,0,0.02);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-1);
+            font-family: var(--font);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar Sidebar */
+        aside {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
+        }
+
+        .brand {
+            padding: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 8px 16px var(--primary-glow);
+        }
+        .brand-name {
+            font-size: 20px;
+            font-weight: 850;
+            letter-spacing: -0.03em;
+            color: var(--text-1);
+        }
+
+        nav {
+            flex: 1;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+        nav::-webkit-scrollbar {
+            width: 8px;
+        }
+        nav::-webkit-scrollbar-thumb {
+            background: var(--text-4);
+            border-radius: 8px;
+        }
+        nav::-webkit-scrollbar-thumb:hover {
+            background: var(--text-3);
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            color: var(--text-3);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14.5px;
+            transition: all var(--transition);
+        }
+        .nav-link i {
+            width: 20px;
+            transition: transform var(--transition);
+        }
+        .nav-link:hover {
+            background: var(--surface-2);
+            color: var(--text-1);
+        }
+        .nav-link:hover i {
+            transform: translateX(2px);
+        }
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 16px var(--primary-glow);
+        }
+        .nav-link.active i { color: white !important; }
+        .nav-section {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-4);
+            margin: 24px 16px 8px;
+        }
+
+        /* Sidebar Footer */
+        .aside-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+        }
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 16px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+        .user-info .name { font-weight: 800; font-size: 13.5px; display: block; }
+        .user-info .role { font-size: 11px; color: var(--text-4); font-weight: 700; text-transform: uppercase; }
+
+        /* Main Content */
+        main {
+            margin-left: 280px;
+            flex: 1;
+            padding: 40px 48px;
+            max-width: 1400px;
+        }
+
+        .page-hero {
+            margin-bottom: 40px;
+        }
+        .page-hero h1 {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            margin: 0 0 8px;
+            color: var(--text-1);
+        }
+        .page-hero p {
+            font-size: 16px;
+            color: var(--text-3);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* Shared Components */
+        .card-pro {
+            background: var(--bg-pure);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .btn-primary-pro {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+        .btn-primary-pro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px var(--primary-glow);
+            filter: brightness(1.05);
+        }
+        .btn-outline-pro {
+            background: transparent;
+            color: var(--text-2);
+            border: 1.5px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-decoration: none;
+        }
+        .btn-outline-pro:hover {
+            background: var(--surface-2);
+            border-color: var(--text-3);
+            color: var(--text-1);
+            transform: translateY(-1px);
+        }
+
+        /* NProgress customization */
+        #nprogress .bar { background: var(--primary); height: 3px; }
+        #nprogress .spinner-icon { border-top-color: var(--primary); border-left-color: var(--primary); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<aside>
+    <div class="brand">
+        <div class="brand-logo"><i data-lucide="layers"></i></div>
+        <span class="brand-name">CanteenHQ</span>
+    </div>
+    
+    <nav>
+        <span class="nav-section">Main</span>
+        <a href="/manager/" class="nav-link {% block nav_dashboard %}{% endblock %}">
+            <i data-lucide="layout-dashboard"></i> Dashboard
+        </a>
+        <a href="/pos/" class="nav-link">
+            <i data-lucide="monitor"></i> POS Terminal
+        </a>
+
+        <span class="nav-section">Finance</span>
+        <a href="/finance/" class="nav-link {% block nav_finance %}{% endblock %}">
+            <i data-lucide="wallet"></i> Financial Hub
+        </a>
+        <a href="/sales-analytics/" class="nav-link {% block nav_analytics %}{% endblock %}">
+            <i data-lucide="trending-up"></i> Sales Intel
+        </a>
+
+        <span class="nav-section">Operations</span>
+        <a href="/kitchen/" class="nav-link" target="_blank">
+            <i data-lucide="chef-hat"></i> Kitchen Display
+        </a>
+        <a href="/inventory/" class="nav-link {% block nav_inventory %}{% endblock %}">
+            <i data-lucide="package"></i> Inventory
+        </a>
+        <a href="/recipe-costing/" class="nav-link {% block nav_costing %}{% endblock %}">
+            <i data-lucide="calculator"></i> Cost Matrix
+        </a>
+        <a href="/order-history/" class="nav-link {% block nav_orders %}{% endblock %}">
+            <i data-lucide="receipt"></i> Order History
+        </a>
+
+        <span class="nav-section">Procurement</span>
+        <a href="/procurement/" class="nav-link {% block nav_procurement %}{% endblock %}">
+            <i data-lucide="shopping-cart"></i> Purchase Orders
+        </a>
+        <a href="/suppliers/" class="nav-link {% block nav_suppliers %}{% endblock %}">
+            <i data-lucide="truck"></i> Suppliers
+        </a>
+
+        <span class="nav-section">System</span>
+        <a href="/audit-logs/" class="nav-link {% block nav_audit %}{% endblock %}">
+            <i data-lucide="shield-check"></i> Audit Logs
+        </a>
+        <a href="/help/" class="nav-link {% block nav_help %}{% endblock %}">
+            <i data-lucide="help-circle"></i> Help & Guides
+        </a>
+    </nav>
+
+    <div class="aside-footer">
+        <a href="/profile-settings/" class="user-pill">
+            <img src="/static/img/logo_events_up.png" class="user-avatar" alt="Events Up" style="object-fit: contain; background: white;">
+            <div class="user-info">
+                <span class="name">{{ request.session.user_name }}</span>
+                <span class="role">{{ request.session.user_role }}</span>
+            </div>
+        </a>
+        <a href="/logout/" class="nav-link" style="margin-top:12px; color:var(--danger)">
+            <i data-lucide="log-out"></i> Sign Out
+        </a>
+    </div>
+</aside>
+
+<main>
+    <div class="page-hero" data-aos="fade-right">
+        <h1>{% block page_title %}Overview{% endblock %}</h1>
+        <p>{% block page_subtitle %}Welcome back to your command center.{% endblock %}</p>
+    </div>
+    
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Core Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+<script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/auto-animate/0.8.2/auto-animate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/countup.js@2.8.0/dist/countUp.umd.js"></script>
+
+<script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Initialize AOS with snappy duration
+    AOS.init({ once: true, offset: 50, duration: 400 });
+
+    // Initialize Notyf
+    const notyf = new Notyf({ duration: 3000, position: {x:'right', y:'top'}, ripple: false });
+
+    // HTMX + NProgress integration
+    document.addEventListener('htmx:beforeRequest', () => NProgress.start());
+    document.addEventListener('htmx:afterRequest', () => NProgress.done());
+    document.addEventListener('htmx:requestError', () => {
+        NProgress.done();
+        notyf.error('Network Error: Please check your connection.');
+    });
+
+    // Global CountUp Helper
+    function animateValue(id, value) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        const countUpInstance = new countUp.CountUp(id, value, { 
+            duration: 2, 
+            separator: ',', 
+            decimal: '.', 
+            prefix: el.dataset.prefix || '',
+            suffix: el.dataset.suffix || ''
+        });
+        if (!countUpInstance.error) countUpInstance.start();
+    }
+
+    // Auto-Animate Global
+    const autoAnimate = window.autoAnimate;
+    document.querySelectorAll('[data-auto-animate]').forEach(el => autoAnimate(el));
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&L Report — {{ start_date }} to {{ end_date }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #1E3A8A;
+    --blue:   #2563EB;
+    --green:  #10B981;
+    --green-d:#065F46;
+    --red:    #EF4444;
+    --dark:   #0F172A;
+    --gray:   #64748B;
+    --light:  #F8FAFC;
+    --border: #E2E8F0;
+    --white:  #FFFFFF;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4f8;
+    color: var(--dark);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Screen toolbar ───────────────────────────────────────── */
+  .toolbar {
+    background: var(--dark);
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .toolbar-left {
+    display: flex; align-items: center; gap: 12px; color: #94A3B8;
+    font-size: 13px; font-weight: 500;
+  }
+  .toolbar-left strong { color: #fff; font-size: 14px; }
+  .toolbar-actions { display: flex; gap: 10px; }
+  .btn-print {
+    background: var(--green); color: #fff; border: none;
+    padding: 10px 22px; border-radius: 10px; font-size: 13px;
+    font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    font-family: 'Inter', sans-serif; transition: all 0.2s;
+  }
+  .btn-print:hover { background: #059669; transform: translateY(-1px); }
+  .btn-back {
+    background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12);
+    padding: 10px 18px; border-radius: 10px; font-size: 13px;
+    font-weight: 600; cursor: pointer; text-decoration: none;
+    display: flex; align-items: center; gap: 7px; font-family: 'Inter', sans-serif; transition: all 0.2s;
+  }
+  .btn-back:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+  /* ── Report wrapper ───────────────────────────────────────── */
+  .report-wrap {
+    max-width: 820px;
+    margin: 36px auto 60px;
+    background: var(--white);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ── Header / Cover ──────────────────────────────────────── */
+  .cover {
+    background: linear-gradient(135deg, var(--navy) 0%, #1D4ED8 100%);
+    padding: 48px 52px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 6px; height: 100%;
+    background: var(--green);
+  }
+  .cover-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .cover-title {
+    font-size: 36px; font-weight: 900; color: #fff;
+    letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 6px;
+  }
+  .cover-sub {
+    font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 400; margin-bottom: 32px;
+  }
+  .cover-meta {
+    display: flex; gap: 32px; flex-wrap: wrap;
+  }
+  .cover-meta-item label {
+    display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px;
+  }
+  .cover-meta-item span {
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+
+  /* ── KPI row ──────────────────────────────────────────────── */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .kpi-cell {
+    padding: 24px 28px;
+    border-right: 1px solid var(--border);
+  }
+  .kpi-cell:last-child { border-right: none; }
+  .kpi-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--gray); margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-size: 22px; font-weight: 900; letter-spacing: -0.03em;
+    color: var(--dark); line-height: 1;
+  }
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.red   { color: var(--red); }
+  .kpi-value.navy  { color: var(--navy); }
+  .kpi-note {
+    font-size: 11px; color: var(--gray); margin-top: 5px; font-weight: 500;
+  }
+
+  /* ── Body sections ───────────────────────────────────────── */
+  .report-body { padding: 48px 52px; }
+
+  .section-title {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--gray);
+    padding-bottom: 10px; border-bottom: 2px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  /* ── P&L Statement ───────────────────────────────────────── */
+  .pl-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+  .pl-table tr td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .pl-table tr td:last-child { text-align: right; font-weight: 600; }
+
+  .pl-section-hdr td {
+    background: #EFF6FF; font-weight: 800; font-size: 11px;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--navy);
+    padding: 9px 16px; border-bottom: none;
+  }
+  .pl-indent td:first-child { padding-left: 32px; color: var(--gray); font-weight: 400; }
+  .pl-subtotal td {
+    font-weight: 800; background: #F8FAFC; color: var(--dark);
+    border-top: 1.5px solid var(--border); border-bottom: 1.5px solid var(--border);
+  }
+  .pl-net td {
+    font-size: 15px; font-weight: 900;
+    border-top: 2px solid var(--dark); border-bottom: 2px solid var(--dark);
+  }
+  .pl-net.profit td { background: #ECFDF5; }
+  .pl-net.loss   td { background: #FEF2F2; }
+  .pl-net.profit td:last-child { color: var(--green); }
+  .pl-net.loss   td:last-child { color: var(--red); }
+  .pl-margin td { color: var(--gray); font-size: 12px; }
+  .pl-margin td:last-child { font-weight: 700; color: var(--blue); }
+
+  /* ── Category table ──────────────────────────────────────── */
+  .cat-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+  .cat-table th {
+    text-align: left; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px; color: var(--gray);
+    padding: 9px 14px; border-bottom: 2px solid var(--border);
+    background: var(--light);
+  }
+  .cat-table th:nth-child(2), .cat-table th:nth-child(3) { text-align: right; }
+  .cat-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .cat-table td:nth-child(2) { text-align: right; font-weight: 600; color: var(--green); }
+  .cat-table td:nth-child(3) { text-align: right; font-weight: 700; color: var(--blue); font-size: 12px; }
+  .cat-bar-wrap { width: 120px; height: 6px; background: #E2E8F0; border-radius: 99px; }
+  .cat-bar { height: 6px; background: var(--green); border-radius: 99px; }
+  .cat-table tr:nth-child(even) td { background: var(--light); }
+
+  /* ── Expense table ───────────────────────────────────────── */
+  .exp-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .exp-table th {
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--gray); padding: 9px 14px; border-bottom: 2px solid var(--border);
+    background: var(--light);
+  }
+  .exp-table th:last-child { text-align: right; }
+  .exp-table td { padding: 10px 14px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+  .exp-table td:last-child { text-align: right; font-weight: 600; }
+  .exp-table tr:nth-child(even) td { background: var(--light); }
+  .exp-total td { font-weight: 800; background: #FFF1F2; border-top: 2px solid var(--red); }
+  .exp-total td:last-child { color: var(--red); }
+
+  /* ── Footer ──────────────────────────────────────────────── */
+  .report-footer {
+    padding: 20px 52px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--light);
+  }
+  .report-footer p { font-size: 11px; color: #94A3B8; font-weight: 500; }
+  .confidential {
+    font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #CBD5E1;
+    border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 99px;
+  }
+
+  /* ── Spacing helper ──────────────────────────────────────── */
+  .mb-section { margin-bottom: 40px; }
+
+  /* ── PRINT STYLES ────────────────────────────────────────── */
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none !important; }
+    .report-wrap {
+      max-width: 100%; margin: 0; box-shadow: none; border-radius: 0;
+    }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .kpi-row { page-break-inside: avoid; }
+    .pl-table, .cat-table, .exp-table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+    .report-body { padding: 32px 40px; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Screen-only toolbar -->
+<div class="toolbar no-print">
+  <div class="toolbar-left">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    <div>
+      <strong>Profit &amp; Loss Report</strong>
+      &nbsp;·&nbsp; {{ start_date }} to {{ end_date }}
+    </div>
+  </div>
+  <div class="toolbar-actions">
+    <a href="/finance/" class="btn-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </a>
+    <button class="btn-print" onclick="window.print()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print Report
+    </button>
+  </div>
+</div>
+
+<!-- Report -->
+<div class="report-wrap">
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-eyebrow">Events Up — Lucky Cement Canteen · Korangi, Karachi</div>
+    <div class="cover-title">Profit &amp; Loss<br>Report</div>
+    <div class="cover-sub">Financial performance summary for the selected period</div>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <label>Period From</label>
+        <span>{{ start_date }}</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Period To</label>
+        <span>{{ end_date }}</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Total Orders</label>
+        <span>{{ total_txn_count }}</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Generated</label>
+        <span>{{ generated_at }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-cell">
+      <div class="kpi-label">Gross Revenue</div>
+      <div class="kpi-value">Rs. {{ total_revenue|floatformat:0 }}</div>
+      <div class="kpi-note">{{ total_txn_count }} transactions</div>
+    </div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Cost of Goods</div>
+      <div class="kpi-value">Rs. {{ total_cogs|floatformat:0 }}</div>
+      <div class="kpi-note">{{ gross_margin|floatformat:1 }}% gross margin</div>
+    </div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value navy">Rs. {{ gross_profit|floatformat:0 }}</div>
+      <div class="kpi-note">After COGS deduction</div>
+    </div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value {% if net_profit >= 0 %}green{% else %}red{% endif %}">
+        Rs. {{ net_profit|floatformat:0 }}
+      </div>
+      <div class="kpi-note">{{ net_margin|floatformat:1 }}% net margin</div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="report-body">
+
+    <!-- P&L Statement -->
+    <div class="mb-section">
+      <div class="section-title">Profit &amp; Loss Statement</div>
+      <table class="pl-table">
+        <tr class="pl-section-hdr"><td colspan="2">Revenue</td></tr>
+        <tr class="pl-indent">
+          <td>Gross Sales Revenue</td>
+          <td>Rs. {{ total_revenue|floatformat:0 }}</td>
+        </tr>
+        <tr class="pl-subtotal">
+          <td>Total Revenue</td>
+          <td>Rs. {{ total_revenue|floatformat:0 }}</td>
+        </tr>
+
+        <tr class="pl-section-hdr"><td colspan="2">Cost of Goods Sold</td></tr>
+        <tr class="pl-indent">
+          <td>Inventory / Ingredient Cost</td>
+          <td>(Rs. {{ total_cogs|floatformat:0 }})</td>
+        </tr>
+        <tr class="pl-subtotal">
+          <td>Gross Profit</td>
+          <td>Rs. {{ gross_profit|floatformat:0 }}</td>
+        </tr>
+        <tr class="pl-margin">
+          <td>Gross Margin %</td>
+          <td>{{ gross_margin|floatformat:1 }}%</td>
+        </tr>
+
+        <tr class="pl-section-hdr"><td colspan="2">Operating Expenses</td></tr>
+        <tr class="pl-indent">
+          <td>Total Operating Expenses</td>
+          <td>(Rs. {{ total_expenses|floatformat:0 }})</td>
+        </tr>
+
+        <tr class="pl-net {% if net_profit >= 0 %}profit{% else %}loss{% endif %}">
+          <td>Net {% if net_profit >= 0 %}Profit{% else %}Loss{% endif %}</td>
+          <td>Rs. {{ net_profit|floatformat:0 }}</td>
+        </tr>
+        <tr class="pl-margin">
+          <td>Net Profit Margin</td>
+          <td>{{ net_margin|floatformat:1 }}%</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Revenue by Category -->
+    {% if sales_by_category %}
+    <div class="mb-section">
+      <div class="section-title">Revenue by Category</div>
+      <table class="cat-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Revenue</th>
+            <th>Share</th>
+            <th>Visual</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in sales_by_category %}
+          <tr>
+            <td>{{ cat.name }}</td>
+            <td>Rs. {{ cat.amount|floatformat:0 }}</td>
+            <td>{{ cat.percent|floatformat:1 }}%</td>
+            <td>
+              <div class="cat-bar-wrap">
+                <div class="cat-bar" data-width="{{ cat.percent|floatformat:0 }}"></div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Expense Ledger -->
+    {% if recent_expenses %}
+    <div class="mb-section">
+      <div class="section-title">Expense Ledger <span style="font-weight:400; text-transform:none; letter-spacing:0; color:#94A3B8; font-size:11px;">&nbsp;({{ recent_expenses|length }} entries)</span></div>
+      <table class="exp-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in recent_expenses %}
+          <tr>
+            <td>{{ e.expense_date|date:"d M Y" }}</td>
+            <td>{{ e.title|default:"—" }}</td>
+            <td>{{ e.category.name|default:"Uncategorized" }}</td>
+            <td>Rs. {{ e.amount|floatformat:0 }}</td>
+          </tr>
+          {% endfor %}
+          <tr class="exp-total">
+            <td colspan="3">Total Expenses</td>
+            <td>Rs. {{ total_expenses|floatformat:0 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div><!-- /report-body -->
+
+  <!-- Footer -->
+  <div class="report-footer">
+    <p>Events Up — Lucky Cement Canteen, Korangi Industrial Area, Karachi<br>Generated: {{ generated_at }}</p>
+    <span class="confidential">Confidential</span>
+  </div>
+
+</div><!-- /report-wrap -->
+
+<script>
+  // Auto-trigger print when opened in a new tab
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 600);
+  });
+</script>
+</body>
+</html>
