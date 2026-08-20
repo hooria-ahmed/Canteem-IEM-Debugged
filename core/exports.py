@@ -1,5 +1,5 @@
 """
-CanteenMS — Professional Export Engine
+Straviam POS — Professional Export Engine
 Produces real PDF (ReportLab) and Excel (openpyxl) files.
 """
 import io
@@ -12,7 +12,7 @@ from django.http import HttpResponse
 
 # ─── shared helpers ──────────────────────────────────────────────────────────
 
-BRAND     = "Events Up — CanteenMS"
+BRAND     = "Straviam POS"
 PRIMARY   = (16, 185, 129)   # emerald-500
 DARK      = (15,  23,  42)   # slate-900
 LIGHT_BG  = (248, 250, 252)  # slate-50
@@ -192,7 +192,7 @@ def generate_finance_pdf(context):
         canvas.rect(0, H - 1.2*cm, 0.6*cm, 1.2*cm, fill=1, stroke=0)
         canvas.setFillColor(C_WHITE)
         canvas.setFont('Helvetica-Bold', 9)
-        canvas.drawString(1.2*cm, H - 0.8*cm, 'Events Up — Lucky Cement Canteen')
+        canvas.drawString(1.2*cm, H - 0.8*cm, 'Straviam POS')
         canvas.setFont('Helvetica', 9)
         canvas.drawRightString(W - 1.5*cm, H - 0.8*cm, f'Profit & Loss Report  |  {sd} to {ed}')
 
@@ -209,7 +209,7 @@ def generate_finance_pdf(context):
         buf, pagesize=A4,
         leftMargin=1.8*cm, rightMargin=1.8*cm,
         topMargin=2.0*cm, bottomMargin=2.2*cm,
-        title='P&L Report', author='Events Up CanteenMS',
+        title='P&L Report', author='Straviam POS',
     )
 
     story = []
@@ -220,9 +220,9 @@ def generate_finance_pdf(context):
 
     # Full-width cover banner (drawn as a table with background)
     cover_inner = [
-        [Paragraph('Events Up', PS('cov1', fontName='Helvetica-Bold', fontSize=9,
+        [Paragraph('Straviam POS', PS('cov1', fontName='Helvetica-Bold', fontSize=9,
                    textColor=C_GREEN, charSpace=2))],
-        [Paragraph('Lucky Cement — Korangi Industrial Area, Karachi', PS('cov2',
+        [Paragraph('Straviam POS', PS('cov2',
                    fontName='Helvetica', fontSize=9, textColor=colors.Color(0.7,0.8,1)))],
         [Spacer(1, 0.5*cm)],
         [Paragraph('Profit &amp; Loss<br/>Report', PS('cov3', fontName='Helvetica-Bold',
@@ -589,26 +589,86 @@ def generate_finance_excel(context):
 
 # ─── Audit Log CSV ────────────────────────────────────────────────────────────
 
+# Human-readable labels for every action code stored in the system.
+_ACTION_LABELS = {
+    'USER_LOGIN':            'User Logged In',
+    'USER_LOGOUT':           'User Logged Out',
+    'USER_UPDATED_PROFILE':  'Profile Updated',
+    'TXN_COMPLETED':         'Sale Completed',
+    'TXN_VOIDED':            'Sale Voided / Cancelled',
+    'EXPENSE_ADDED':         'Expense Recorded',
+    'STOCK_ADDED':           'Stock Added Manually',
+    'WASTAGE_LOGGED':        'Wastage / Spoilage Logged',
+    'COST_UPDATED':          'Item Cost Updated',
+    'PRICE_UPDATED':         'Dish Selling Price Updated',
+    'DISH_CREATED':          'New Dish Added to Menu',
+    'MATERIAL_CREATED':      'New Raw Material Added',
+    'PO_CREATED':            'Purchase Order Created',
+    'PO_RECEIVED':           'Purchase Order Received',
+    'KITCHEN_STATUS':        'Kitchen Order Status Changed',
+    'SUPPLIER_CREATED':      'Supplier Added',
+    'SUPPLIER_UPDATED':      'Supplier Details Updated',
+    'SUPPLIER_TOGGLED':      'Supplier Activated / Deactivated',
+}
+
+_ENTITY_LABELS = {
+    'User':             'User Account',
+    'SalesTransaction': 'Sale',
+    'Expense':          'Expense',
+    'RawMaterial':      'Raw Material',
+    'Dish':             'Dish / Menu Item',
+    'PurchaseOrder':    'Purchase Order',
+    'Supplier':         'Supplier',
+}
+
+
+def _fmt_values(data: dict) -> str:
+    """Turn a JSON dict into a readable comma-separated list of key=value pairs."""
+    if not data:
+        return '—'
+    parts = []
+    for k, v in data.items():
+        # Make key human-readable: 'cost' → 'Cost', 'total' → 'Total'
+        label = k.replace('_', ' ').title()
+        # Format numeric values as currency where they look like money
+        if isinstance(v, (int, float)) and k in ('cost', 'total', 'amount', 'price'):
+            parts.append(f"{label}: Rs. {v:,.2f}")
+        else:
+            parts.append(f"{label}: {v}")
+    return '  |  '.join(parts)
+
+
 def generate_audit_csv(logs_qs):
     resp = HttpResponse(content_type='text/csv')
     resp['Content-Disposition'] = (
         f'attachment; filename="AuditLog_{datetime.now().strftime("%Y%m%d_%H%M")}.csv"'
     )
     writer = csv.writer(resp)
-    writer.writerow(['Timestamp', 'Operator', 'Action Code', 'Entity Type',
-                     'Entity ID', 'IP Address', 'Old Values', 'New Values'])
+    writer.writerow([
+        'Date & Time',
+        'Operator Name',
+        'Action',
+        'Affected Record',
+        'Record ID',
+        'IP Address',
+        'Before Change',
+        'After Change',
+    ])
     for log in logs_qs:
+        action_label  = _ACTION_LABELS.get(log.action_code, log.action_code.replace('_', ' ').title())
+        entity_label  = _ENTITY_LABELS.get(log.entity_type, log.entity_type)
         writer.writerow([
-            log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            log.user.full_name if log.user else '—',
-            log.action_code,
-            log.entity_type,
+            log.created_at.strftime('%d %b %Y  %H:%M:%S'),
+            log.user.full_name if log.user else 'System / Unknown',
+            action_label,
+            entity_label,
             log.entity_id or '',
-            log.ip_address or '',
-            str(log.old_values or ''),
-            str(log.new_values or ''),
+            log.ip_address or 'N/A',
+            _fmt_values(log.old_values) if log.old_values else '—',
+            _fmt_values(log.new_values) if log.new_values else '—',
         ])
     return resp
+
 
 
 # ─── Order History Excel ──────────────────────────────────────────────────────

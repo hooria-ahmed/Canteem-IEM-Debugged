@@ -398,7 +398,20 @@ $('#supplierForm').on('submit', async function(e) {
 });
 
 async function toggleStatus(id, name) {
-    if (!confirm(`Toggle status for "${name}"?`)) return;
+    const result = await Swal.fire({
+        title: 'Change Supplier Status?',
+        html: `<p style="color:#475569;font-size:14px;margin:0;">Toggle active/inactive status for <strong>${name}</strong>.</p>`,
+        icon: 'question',
+        iconColor: '#10b981',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Toggle',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#e2e8f0',
+        customClass: { cancelButton: 'swal-cancel-dark', popup: 'swal-popup-custom' },
+        reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
     try {
         const res = await fetch(`/suppliers/${id}/toggle/`, {
             method: 'POST',
@@ -422,7 +435,20 @@ async function toggleStatus(id, name) {
 }
 
 async function deleteSupplier(id, name) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const result = await Swal.fire({
+        title: 'Delete Supplier?',
+        html: `<p style="color:#475569;font-size:14px;margin:0;">Delete <strong>${name}</strong>? If they have order history, they will be deactivated instead.</p>`,
+        icon: 'warning',
+        iconColor: '#ef4444',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#e2e8f0',
+        customClass: { cancelButton: 'swal-cancel-dark', popup: 'swal-popup-custom' },
+        reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
     try {
         const res = await fetch(`/suppliers/${id}/delete/`, {
             method: 'POST',

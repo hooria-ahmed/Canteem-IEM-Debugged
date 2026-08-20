@@ -183,6 +183,11 @@
                             <div class="material-meta">
                                 Stock: {{ m.current_stock|floatformat:1 }} {{ m.units }} &bull; Rs. {{ m.cost_per_unit|floatformat:2 }}/{{ m.units }}
                             </div>
+                            {% if m.cost_per_unit == 0 %}
+                            <div style="margin-top:5px; font-size:10.5px; font-weight:800; color:#D97706; background:#FFFBEB; border:1px solid #FDE68A; padding:3px 8px; border-radius:8px; display:inline-flex; align-items:center; gap:4px;">
+                                <i data-lucide="alert-triangle" style="width:11px; height:11px;"></i> No cost set — enter price below
+                            </div>
+                            {% endif %}
                             {% if m.used_in_dishes %}
                             <div class="dish-tags">
                                 {% for dish in m.used_in_dishes %}
@@ -200,6 +205,7 @@
                         </button>
                     </div>
                     {% endfor %}
+
                 </div>
             </div>
         </div>

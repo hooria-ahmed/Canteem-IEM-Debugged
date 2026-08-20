@@ -510,12 +510,13 @@ def manager_dashboard(request):
     total_expenses = daily_expenses.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     net_profit = gross_profit - total_expenses
     
-    # Optimized Sales trend (1 query instead of 24)
+    # Sales trend: prefer 24h hourly data; fall back to 7-day daily history
+    # when today has no/very little data so the chart is never blank.
     trend_labels = []
     trend_data = []
     now_dt = timezone.localtime().replace(tzinfo=None)
     cutoff = now_dt - timedelta(hours=23)
-    
+
     recent_sales = SalesTransaction.objects.filter(
         sale_date__gte=cutoff.date(),
         status='completed'
@@ -524,22 +525,39 @@ def manager_dashboard(request):
     for i in range(23, -1, -1):
         hr_time = (now_dt - timedelta(hours=i))
         hr_start = hr_time.replace(minute=0, second=0, microsecond=0)
-        hr_end = hr_time.replace(minute=59, second=59, microsecond=999999)
-        
-        # Filter in memory (fast)
+        hr_end   = hr_time.replace(minute=59, second=59, microsecond=999999)
         hr_total = sum(
-            txn.total_amount for txn in recent_sales 
+            txn.total_amount for txn in recent_sales
             if txn.sale_date == hr_time.date() and hr_start.time() <= txn.sale_time <= hr_end.time()
         )
         trend_labels.append(hr_start.strftime("%H:%M"))
         trend_data.append(float(hr_total))
 
+    # If the 24h window is entirely empty, fall back to 7-day daily totals
+    # so the dashboard always shows meaningful historical context.
+    if sum(trend_data) == 0:
+        seven_days_ago = today - timedelta(days=6)
+        daily_qs = (
+            SalesTransaction.objects
+            .filter(sale_date__range=(seven_days_ago, today), status='completed')
+            .values('sale_date')
+            .annotate(day_total=Sum('total_amount'))
+            .order_by('sale_date')
+        )
+        rev_map = {row['sale_date']: float(row['day_total']) for row in daily_qs}
+        trend_labels = []
+        trend_data   = []
+        for offset in range(6, -1, -1):
+            d = today - timedelta(days=offset)
+            trend_labels.append(d.strftime('%b %d'))
+            trend_data.append(rev_map.get(d, 0))
+
     # Active orders for live monitor (ONLY pending and preparing)
     active_orders = SalesTransaction.objects.filter(
-        sale_date=today, 
+        sale_date=today,
         kitchen_status__in=['pending', 'preparing']
     ).order_by('-sale_time')[:10]
-    
+
     # Sales by category
     category_revenue = sales_items_today.values('dish__category__name').annotate(cat_total=Sum('line_total')).order_by('-cat_total')
     sales_by_category = []
@@ -551,21 +569,26 @@ def manager_dashboard(request):
             'percent': (cat['cat_total'] / total_revenue * 100) if total_revenue > 0 else 0,
             'color': colors[i % len(colors)]
         })
-        
+
     # Top selling items
     top_selling = sales_items_today.values(
-        'dish_name', 
+        'dish_name',
         category_name=F('dish__category__name')
     ).annotate(
-        revenue=Sum('line_total'), 
+        revenue=Sum('line_total'),
         qty_sold=Sum('quantity')
     ).order_by('-qty_sold')[:3]
-    
-    # Map category_name to category for the template
+
     for item in top_selling:
         item['category'] = item['category_name']
 
-    low_stock_items = RawMaterial.objects.filter(current_stock__lte=F('reorder_level'), is_active=True)
+    # Critical stock alerts: items below their reorder_level OR items
+    # with reorder_level=0 that have been fully depleted (stock == 0).
+    low_stock_items = RawMaterial.objects.filter(
+        Q(reorder_level__gt=0, current_stock__lte=F('reorder_level')) |
+        Q(reorder_level=0, current_stock=0),
+        is_active=True
+    )
     profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else Decimal('0.00')
     low_stock_count = low_stock_items.count()
     
@@ -836,19 +859,25 @@ def inventory_management(request):
         elif action == 'update_cost':
             try:
                 material_id = request.POST.get('material_id')
-                new_cost = Decimal(request.POST.get('new_cost', '0') or '0')
-                if not material_id: message, message_type = "Select a material.", "error"
+                new_cost_str = request.POST.get('new_cost', '').strip()
+                if not material_id:
+                    message, message_type = "Select a material.", "error"
+                elif not new_cost_str:
+                    message, message_type = "Enter a cost value.", "error"
                 else:
-                    rm = RawMaterial.objects.get(id=material_id)
+                    new_cost = Decimal(new_cost_str)
                     if new_cost < 0:
                         raise ValueError("Cost cannot be negative.")
-                    old_cost = rm.cost_per_unit
-                    rm.cost_per_unit = new_cost
-                    rm.save()
+                    with transaction.atomic():
+                        rm = RawMaterial.objects.select_for_update().get(id=material_id)
+                        old_cost = rm.cost_per_unit
+                        rm.cost_per_unit = new_cost
+                        rm.save(update_fields=['cost_per_unit', 'updated_at'])
                     log_audit(request, 'COST_UPDATED', 'RawMaterial', rm.id, old_val={'cost': float(old_cost)}, new_val={'cost': float(new_cost)})
                     _invalidate_manager_cache()
-                    message, message_type = f"Updated {rm.name} cost.", "success"
-            except Exception as e: message, message_type = f"Error: {str(e)}", "error"
+                    message, message_type = f"Cost for {rm.name} updated to Rs. {new_cost:.2f}.", "success"
+            except Exception as e:
+                message, message_type = f"Error: {str(e)}", "error"
         elif action == 'update_dish_price':
             try:
                 dish_id = request.POST.get('dish_id')
@@ -1517,10 +1546,14 @@ def receive_purchase_order(request, po_id):
                 rm = RawMaterial.objects.select_for_update().get(id=item.raw_material_id)
                 before = rm.current_stock
                 rm.current_stock += item.quantity_ordered
-                rm.save()
+                # Update cost_per_unit to the actual unit cost paid on this PO
+                # so that future sales correctly reflect procurement cost.
+                if item.unit_cost and item.unit_cost > 0:
+                    rm.cost_per_unit = item.unit_cost
+                rm.save(update_fields=['current_stock', 'cost_per_unit', 'updated_at'])
                 item.quantity_received = item.quantity_ordered
                 item.save(update_fields=['quantity_received'])
-                
+
                 # Log stock adjustment
                 StockAdjustment.objects.create(
                     raw_material=rm,

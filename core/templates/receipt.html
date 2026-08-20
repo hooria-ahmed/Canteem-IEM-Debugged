@@ -142,22 +142,42 @@
 
         /* Print Styles */
         @media print {
-            body {
-                background: white;
-                padding: 0;
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            html, body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 80mm !important;
+                min-height: unset !important;
+                display: block !important;
             }
             .receipt-container {
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                max-width: 300px;
-                background-image: none;
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 8px !important;
+                width: 72mm !important;
+                max-width: 72mm !important;
+                background-image: none !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            .receipt-inner {
+                font-size: 11px !important;
+                line-height: 1.4 !important;
             }
             .no-print {
                 display: none !important;
             }
-            @page { margin: 0; }
+            .actions {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -167,9 +187,7 @@
     <div class="receipt-container">
         <div class="receipt-inner">
             <div class="header text-center">
-                <h1 style="font-size:18px; letter-spacing:1px;">Events Up</h1>
-                <div style="font-weight:700; font-size:12px; margin-bottom:2px;">Lucky Cement — Canteen</div>
-                <div style="font-size:11px; color:#4b5563;">Korangi Industrial Area, Karachi</div>
+                <h1 style="font-size:18px; letter-spacing:1px;">Straviam POS</h1>
                 <div style="font-size:11px; color:#4b5563;">Tel: +92 21 111 786 000</div>
             </div>
             
@@ -233,7 +251,7 @@
 
             <div class="footer text-center">
                 <div class="font-bold">Thank You For Your Visit!</div>
-                <div style="margin-top: 4px;">Powered by CanteenERP</div>
+                <div style="margin-top: 4px;">Powered by Straviam POS</div>
             </div>
         </div>
     </div>

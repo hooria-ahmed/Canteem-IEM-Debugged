@@ -1,13 +1,13 @@
-{% extends "base_manager.html" %}
+﻿{% extends "base_manager.html" %}
 {% block title %}Executive Overview{% endblock %}
 {% block page_title %}Operational Intelligence{% endblock %}
-{% block page_subtitle %}Live snapshot of canteen performance for {{ date }}{% endblock %}
+{% block page_subtitle %}Live snapshot of POS performance for {{ date }}{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 
 {% block extra_head %}
 <style>
 /* KPI Strip */
-.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 32px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; margin-bottom: 32px; }
 .kpi-pro {
     background: rgba(255, 255, 255, 0.7); 
     backdrop-filter: blur(10px);
@@ -146,6 +146,16 @@
         <div class="kpi-lbl">Low Stock</div>
         <div class="kpi-val" id="kpi-stock" style="font-size:24px; font-weight:850; color:var(--text-1); margin:4px 0">{{ low_stock_count|default:0 }}</div>
         <div class="kpi-sub" style="font-size:12px; font-weight:700; color:var(--danger)">Requires attention</div>
+    </div>
+
+    <div class="kpi-pro" data-aos="zoom-in" data-aos-delay="250">
+        <div class="kpi-accent-top" style="background:{% if net_profit >= 0 %}#10B981{% else %}#EF4444{% endif %}"></div>
+        <div class="kpi-icon-wrap" style="background:{% if net_profit >= 0 %}#DCFCE7{% else %}#FEE2E2{% endif %}; color:{% if net_profit >= 0 %}var(--primary){% else %}var(--danger){% endif %}; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:16px">
+            <i data-lucide="{% if net_profit >= 0 %}trending-up{% else %}trending-down{% endif %}"></i>
+        </div>
+        <div class="kpi-lbl">Net Profit</div>
+        <div class="kpi-val" id="kpi-net" data-prefix="Rs. " style="font-size:24px; font-weight:850; color:{% if net_profit >= 0 %}var(--primary){% else %}var(--danger){% endif %}; margin:4px 0">Rs. {{ net_profit|floatformat:0 }}</div>
+        <div class="kpi-sub" style="font-size:12px; font-weight:500; color:var(--text-4)">After all expenses</div>
     </div>
 </div>
 
@@ -296,6 +306,7 @@
   "rev":   "{{ total_revenue|floatformat:0|default:'0' }}",
   "cogs":  "{{ total_cogs|floatformat:0|default:'0' }}",
   "prof":  "{{ gross_profit|floatformat:0|default:'0' }}",
+  "net":   "{{ net_profit|floatformat:0|default:'0' }}",
   "marg":  "{{ profit_margin|floatformat:1|default:'0' }}",
   "stock": "{{ low_stock_count|default:'0' }}",
   "trendLabels": {{ trend_labels|safe }},
@@ -314,6 +325,7 @@ $(document).ready(function () {
     animateValue('kpi-rev',   d.rev);
     animateValue('kpi-cogs',  d.cogs);
     animateValue('kpi-prof',  d.prof);
+    animateValue('kpi-net',   d.net);
     animateValue('kpi-marg',  d.marg);
     animateValue('kpi-stock', d.stock);
 

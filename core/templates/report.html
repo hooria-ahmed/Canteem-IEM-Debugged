@@ -1,4 +1,4 @@
-{% extends "base_manager.html" %}
+﻿{% extends "base_manager.html" %}
 {% block title %}Daily Report - {{ report.report_date|date:"F d, Y" }}{% endblock %}
 {% block page_title %}Daily Report{% endblock %}
 {% block page_subtitle %}{{ report.report_date|date:"l, F d, Y" }}{% endblock %}
@@ -169,7 +169,7 @@
 
 {% block content %}
 <div class="print-header">
-    <h1>Events Up</h1>
+    <h1>Straviam POS</h1>
     <p>Daily Financial Report</p>
     <p style="font-weight: 700;">{{ report.report_date|date:"l, F d, Y" }}</p>
 </div>

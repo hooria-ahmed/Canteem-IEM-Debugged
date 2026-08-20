@@ -31,6 +31,27 @@
 }
 
 .chart-2col{display:grid;grid-template-columns:1fr 420px;gap:28px;margin-bottom:28px}
+.card-head {
+    padding: 22px 28px;
+    border-bottom: 1.5px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-pure);
+}
+.card-head h3 {
+    font-size: 16px;
+    font-weight: 850;
+    color: var(--text-1);
+    margin: 0;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.card-body {
+    padding: 28px 32px;
+}
 
 .kpi-pro {
     background: var(--bg-pure);
@@ -196,7 +217,7 @@
 
 {% block content %}
 <div class="print-header">
-    <h1>Events Up</h1>
+    <h1>Straviam POS</h1>
     <p style="font-weight: 800; font-size: 18px; color: #111;">Comprehensive Profit & Loss Report</p>
     <p id="printDateRange" style="font-weight: 600;"></p>
     <p id="printTimestamp" style="font-size: 11px; color: #888; text-transform: uppercase; margin-top: 10px;"></p>
@@ -285,10 +306,14 @@
 <div class="chart-2col">
   <div class="card-pro hide-print" data-aos="fade-up">
     <div class="card-head">
-      <h3><i data-lucide="activity" style="color:var(--primary)"></i> Revenue & Profit Dynamics</h3>
-      <div style="display:flex; gap:16px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px">
-        <span style="display:flex; align-items:center; gap:6px"><i class="bi bi-circle-fill" style="color:#10B981; font-size:6px"></i> Revenue</span>
-        <span style="display:flex; align-items:center; gap:6px"><i class="bi bi-circle-fill" style="color:#3B82F6; font-size:6px"></i> Profit</span>
+      <h3><i data-lucide="activity" style="color:var(--primary)"></i> Revenue &amp; Profit Dynamics</h3>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-2); background:var(--surface-2); padding:5px 12px; border-radius:12px; border:1px solid var(--border);">
+          <span style="width:7px; height:7px; border-radius:50%; background:#10B981; display:inline-block;"></span> Revenue
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-2); background:var(--surface-2); padding:5px 12px; border-radius:12px; border:1px solid var(--border);">
+          <span style="width:7px; height:7px; border-radius:50%; background:#3B82F6; display:inline-block;"></span> Profit
+        </span>
       </div>
     </div>
     <div class="card-body">

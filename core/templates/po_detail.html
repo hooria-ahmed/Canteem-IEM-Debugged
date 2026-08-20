@@ -1,4 +1,4 @@
-{% extends "base_manager.html" %}
+﻿{% extends "base_manager.html" %}
 {% block title %}PO Detail - {{ po.po_number }}{% endblock %}
 {% block page_title %}Order Details{% endblock %}
 {% block page_subtitle %}Purchase Order #{{ po.po_number }} - Review and manage fulfillment.{% endblock %}
@@ -15,6 +15,117 @@
     .line-table th { text-align: left; padding: 16px 24px; background: var(--surface-2); font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-3); }
     .line-table td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 14px; }
     .line-table tr:last-child td { border-bottom: none; }
+
+    /* ── Print Styles ───────────────────────────────────────────── */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+        }
+
+        /* Hide sidebar, nav, and all screen-only page elements */
+        aside,
+        .page-hero,
+        .po-header-grid,
+        .line-items-card,
+        .no-print,
+        [data-aos-delay] > .card-head > div { display: none !important; }
+
+        /* Also hide the footer meta row and back link */
+        main > div:last-of-type { display: none !important; }
+
+        /* Reset main so it takes full width without sidebar offset */
+        body { display: block !important; background: white !important; }
+        main {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+
+        /* Show the print wrapper */
+        #printWrapper {
+            display: block !important;
+            width: 100%;
+            font-family: 'DM Sans', Arial, sans-serif;
+            color: #0f172a;
+        }
+
+        .print-header {
+            display: flex !important;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #10b981;
+        }
+        .print-brand { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.04em; }
+        .print-brand span { color: #10b981; }
+        .print-meta { text-align: right; font-size: 11px; color: #64748b; line-height: 1.6; }
+        .print-meta strong { color: #0f172a; }
+
+        .print-stats {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .print-stat-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .print-stat-lbl { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.8px; margin-bottom: 4px; }
+        .print-stat-val { font-size: 14px; font-weight: 900; color: #0f172a; }
+        .print-stat-box.highlight { border-color: #10b981; }
+        .print-stat-box.highlight .print-stat-val { color: #10b981; font-size: 18px; }
+
+        .print-section-title {
+            font-size: 11px; font-weight: 800; text-transform: uppercase;
+            color: #64748b; letter-spacing: 0.8px; margin: 16px 0 10px;
+            display: block !important;
+        }
+
+        .print-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .print-table thead tr { background: #f8fafc; }
+        .print-table th {
+            text-align: left; padding: 10px 12px; font-size: 10px;
+            font-weight: 800; text-transform: uppercase; color: #64748b;
+            border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;
+        }
+        .print-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+        .print-table tbody tr:last-child td { border-bottom: none; }
+        .print-table .td-total { font-weight: 800; text-align: right; }
+        .print-table .th-right { text-align: right; }
+
+        .print-total-row {
+            display: flex !important;
+            justify-content: flex-end;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 2px solid #0f172a;
+            gap: 24px;
+            align-items: center;
+        }
+        .print-total-lbl { font-size: 13px; font-weight: 800; color: #64748b; }
+        .print-total-val { font-size: 20px; font-weight: 900; color: #10b981; }
+
+        .print-notes {
+            margin-top: 16px; padding: 12px; background: #f8fafc;
+            border-radius: 8px; border-left: 3px solid #10b981;
+            font-size: 12px; color: #475569; font-style: italic;
+        }
+
+        .print-footer {
+            margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0;
+            display: flex !important; justify-content: space-between;
+            font-size: 10px; color: #94a3b8;
+        }
+    }
+
+    /* Hide print wrapper on screen */
+    #printWrapper { display: none; }
+
 </style>
 {% endblock %}
 
@@ -50,7 +161,7 @@
     <div class="card-head" style="padding: 24px; border-bottom: 1px solid var(--border);">
         <h3 style="font-size: 16px;"><i data-lucide="shopping-bag" style="color: var(--primary);"></i> Order Items</h3>
         <div style="display: flex; gap: 12px;">
-            <button class="btn-outline-pro" onclick="window.print()">
+            <button class="btn-outline-pro" onclick="doPrint()">
                 <i data-lucide="printer"></i> Print PO
             </button>
             {% if po.status == 'ordered' %}
@@ -93,44 +204,213 @@
     <div>Created by {{ po.ordered_by.full_name }} at {{ po.created_at|date:"M d, Y H:i" }}</div>
     <a href="{% url 'purchase_orders_list' %}" class="nav-link" style="color: var(--primary);"><i data-lucide="arrow-left"></i> Back to Register</a>
 </div>
+
+{# ── Hidden print-only document ──────────────────────────────────────────── #}
+<div id="printWrapper" aria-hidden="true">
+    <div class="print-header">
+        <div>
+            <div class="print-brand">Canteen<span>HQ</span></div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">Straviam POS</div>
+        </div>
+        <div class="print-meta">
+            <strong>PURCHASE ORDER</strong><br>
+            {{ po.po_number }}<br>
+            Printed: {{ po.created_at|date:"d M Y" }}
+        </div>
+    </div>
+
+    <div class="print-stats">
+        <div class="print-stat-box">
+            <div class="print-stat-lbl">Supplier</div>
+            <div class="print-stat-val">{{ po.supplier.name }}</div>
+        </div>
+        <div class="print-stat-box">
+            <div class="print-stat-lbl">Order Date</div>
+            <div class="print-stat-val">{{ po.order_date|date:"d M Y" }}</div>
+        </div>
+        <div class="print-stat-box">
+            <div class="print-stat-lbl">Status</div>
+            <div class="print-stat-val">{{ po.status|upper }}</div>
+        </div>
+        <div class="print-stat-box highlight">
+            <div class="print-stat-lbl">Total Value</div>
+            <div class="print-stat-val">Rs. {{ po.total_amount|floatformat:0 }}</div>
+        </div>
+    </div>
+
+    <div class="print-section-title">
+        Order Line Items
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Raw Material</th>
+                <th>Qty Ordered</th>
+                <th>Unit</th>
+                <th class="th-right">Unit Cost (Rs.)</th>
+                <th class="th-right">Line Total (Rs.)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td style="color:#94a3b8; font-size:11px;">{{ forloop.counter }}</td>
+                <td style="font-weight:700;">{{ item.raw_material.name }}</td>
+                <td>{{ item.quantity_ordered|floatformat:1 }}</td>
+                <td>{{ item.unit }}</td>
+                <td style="text-align:right;">{{ item.unit_cost|floatformat:2 }}</td>
+                <td class="td-total">{{ item.line_total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="print-total-row">
+        <span class="print-total-lbl">GRAND TOTAL</span>
+        <span class="print-total-val">Rs. {{ po.total_amount|floatformat:2 }}</span>
+    </div>
+
+    {% if po.notes %}
+    <div class="print-notes">
+        <strong>Notes:</strong> {{ po.notes }}
+    </div>
+    {% endif %}
+
+    <div class="print-footer">
+        <span>Ordered by: {{ po.ordered_by.full_name }}</span>
+        <span>{{ po.po_number }} — Straviam POS Procurement System</span>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     $(document).ready(function() {
         lucide.createIcons();
-        const notyf = new Notyf({ position: { x: 'right', y: 'top' } });
 
-        $('#receiveBtn').on('click', async function() {
-            if (!confirm('Mark this order as received? This will increase material stock levels.')) return;
+        /* ── Mark as Received — SweetAlert2 confirmation ── */
+        $('#receiveBtn').on('click', function() {
+            Swal.fire({
+                title: 'Mark as Received?',
+                html: '<p style="color:#475569;font-size:14px;margin:0;">This will <strong>increase raw material stock levels</strong> based on the ordered quantities and update each material\'s unit cost to the price on this PO.</p>',
+                icon: 'question',
+                iconColor: '#10b981',
+                showCancelButton: true,
+                confirmButtonText: '<i class="swal-icon-check"></i> Yes, Mark Received',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#e2e8f0',
+                customClass: {
+                    cancelButton: 'swal-cancel-dark',
+                    popup: 'swal-popup-custom',
+                },
+                reverseButtons: true,
+                focusConfirm: false,
+            }).then(async (result) => {
+                if (!result.isConfirmed) return;
 
-            const btn = $(this);
-            btn.prop('disabled', true).html('<i data-lucide="loader" class="spin" style="width:18px"></i> Processing...');
-            lucide.createIcons();
-
-            try {
-                const response = await fetch('{% url "receive_purchase_order" po.id %}', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    notyf.success('Stock updated and order marked as received!');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    throw new Error(result.error);
-                }
-            } catch (error) {
-                notyf.error('Error: ' + error.message);
-                btn.prop('disabled', false).html('<i data-lucide="check-circle"></i> Mark as Received');
+                const btn = $('#receiveBtn');
+                btn.prop('disabled', true).html('<i data-lucide="loader" class="spin" style="width:18px"></i> Processing...');
                 lucide.createIcons();
-            }
+
+                try {
+                    const response = await fetch('{% url "receive_purchase_order" po.id %}', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        await Swal.fire({
+                            title: 'Stock Updated!',
+                            html: '<p style="color:#475569;font-size:14px;margin:0;">The purchase order has been marked as <strong>Received</strong> and stock levels have been updated.</p>',
+                            icon: 'success',
+                            iconColor: '#10b981',
+                            confirmButtonColor: '#10b981',
+                            confirmButtonText: 'Done',
+                            timer: 2500,
+                            timerProgressBar: true,
+                        });
+                        location.reload();
+                    } else {
+                        throw new Error(result.error || 'Unknown error occurred');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        title: 'Error',
+                        html: `<p style="color:#475569;font-size:14px;margin:0;">${error.message}</p>`,
+                        icon: 'error',
+                        confirmButtonColor: '#ef4444',
+                    });
+                    btn.prop('disabled', false).html('<i data-lucide="check-circle"></i> Mark as Received');
+                    lucide.createIcons();
+                }
+            });
         });
     });
+
+    /* ── Print: open a clean popup with only PO content ── */
+    function doPrint() {
+        const content = document.getElementById('printWrapper').innerHTML;
+        const win = window.open('', '_blank', 'width=900,height=700');
+        win.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PO - {{ po.po_number }}</title>
+    <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #0f172a; background: white; }
+
+        .print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #10b981; }
+        .print-brand  { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
+        .print-brand span { color: #10b981; }
+        .print-meta   { text-align: right; font-size: 11px; color: #64748b; line-height: 1.7; }
+        .print-meta strong { color: #0f172a; font-size: 12px; }
+
+        .print-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+        .print-stat-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+        .print-stat-lbl { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.8px; margin-bottom: 4px; }
+        .print-stat-val { font-size: 14px; font-weight: 900; color: #0f172a; }
+        .print-stat-box.highlight { border-color: #10b981; }
+        .print-stat-box.highlight .print-stat-val { color: #10b981; font-size: 18px; }
+
+        .print-section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.8px; margin: 18px 0 10px; }
+
+        .print-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .print-table th { text-align: left; padding: 9px 12px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; background: #f8fafc; }
+        .print-table td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; }
+        .print-table tbody tr:last-child td { border-bottom: none; }
+        .print-table .th-right, .print-table .td-total { text-align: right; }
+        .print-table .td-total { font-weight: 800; }
+
+        .print-total-row { display: flex; justify-content: flex-end; gap: 20px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 2px solid #0f172a; }
+        .print-total-lbl { font-size: 13px; font-weight: 800; color: #64748b; }
+        .print-total-val { font-size: 20px; font-weight: 900; color: #10b981; }
+
+        .print-notes { margin-top: 14px; padding: 11px 14px; background: #f8fafc; border-left: 3px solid #10b981; font-size: 12px; color: #475569; font-style: italic; }
+
+        .print-footer { margin-top: 32px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; }
+    </style>
+</head>
+<body>${content}</body>
+</html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); win.close(); }, 400);
+    }
+
 </script>
 <style>
     .spin { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* SweetAlert2 styling overrides */
+    .swal-popup-custom { border-radius: 20px !important; font-family: 'DM Sans', sans-serif !important; }
+    .swal-cancel-dark { color: #374151 !important; }
 </style>
 {% endblock %}
